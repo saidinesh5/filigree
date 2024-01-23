@@ -139,11 +139,14 @@ void loop() {
     // TODO: Fill out RPC code
     // Commands to support:
     // enum class Commands {
-    // MotorCount = 0,   // () -> uint32_t uint8 should be enough.
-    // MotorStatus,      // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-    // MotorAlerts,      // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-    // MotorMove, // (motor_id: uint8_t, angle: float, is_cutting: uint8_t) -> uint32_t // Motor_alerts
-    // MotorReset       // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
+    // MotorsCount = 0,        // () -> uint32_t uint8 should be enough
+    // MotorAngle = 1,         // (motor_id: uint8_t) -> float
+    // MotorStatus = 2,        // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
+    // MotorAlerts = 3,        // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
+    // MotorAbsoluteMove = 4,  // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
+    // MotorRelativeMove = 5   // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
+    // MotorCutMove = 6        // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
+    // MotorReset = 7          // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
     // };
   }
 }
