@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { Slider, Button} from "@nextui-org/react";
+import { Slider, Button, Divider} from "@nextui-org/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export default function MotorController({
   motorId,
@@ -12,9 +13,10 @@ export default function MotorController({
   onResetMotor: (motorId: number) => void;
 }) {
   return (
-    <div className="flex flex-col w-full h-full max-w-md items-start justify-center">
-          {/* <p> Motor {motorId} </p> */}
-          {/* <Button className="justify-center">Reset</Button> */}
+      <div className="flex items-center space-x-3 text-small w-full h-full">
+        <p className="w-1/10"> Motor {motorId} </p>
+
+        <Divider orientation="vertical" />
 
         <Slider
           aria-label="angle"
@@ -24,6 +26,9 @@ export default function MotorController({
           maxValue={360}
           step={0.5}
           label="Angle"
+          formatOptions={
+            {minimumFractionDigits: 1}
+          }
           onChange={(value: number | number[]) =>
             onAngleChange(motorId, Array.isArray(value) ? value[0] : value)
           }
@@ -33,7 +38,7 @@ export default function MotorController({
               radius="full"
               onPress={() => onAngleChange(motorId, angle >= 0.5 ? angle - 0.5 : 0)}
             >
-              -
+              <FontAwesomeIcon icon="minus" />
             </Button>
           }
           endContent={
@@ -44,11 +49,19 @@ export default function MotorController({
                 onAngleChange(motorId, angle <= 359.5 ? angle + 0.5 : 360)
               }
             >
-              +
+              <FontAwesomeIcon icon="plus" />
             </Button>
           }
-          className="max-w-md"
+          className="grow w-8/10"
         />
+
+        <Divider orientation="vertical" />
+        
+        <Button isIconOnly className="justify-center w-1/10">
+          <FontAwesomeIcon icon="arrow-rotate-left" />
+        </Button>
+
+        <Divider orientation="vertical" />
     </div>
   );
 }

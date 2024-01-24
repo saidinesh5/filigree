@@ -1,6 +1,6 @@
-# React + TypeScript + Vite
+# Filigree Configurator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is a simple web application to configure the Filigree Machine
 
 Currently, two official plugins are available:
 

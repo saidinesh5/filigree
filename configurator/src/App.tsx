@@ -15,34 +15,36 @@ import {
 import "./App.css";
 
 import MotorController from "./MotorController";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 enum MotorCommands {
-  MotorsCount = 0,       // () -> uint32_t uint8 should be enough.
-  MotorAngle = 1,        // (motor_id: uint8_t) -> float
-  MotorStatus = 2,       // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAlerts = 3,       // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
+  MotorsCount = 0, // () -> uint32_t uint8 should be enough.
+  MotorAngle = 1, // (motor_id: uint8_t) -> float
+  MotorStatus = 2, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
+  MotorAlerts = 3, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
   MotorAbsoluteMove = 4, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
   MotorRelativeMove = 5, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorCutMove = 6,      // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorReset = 7,        // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
+  MotorCutMove = 6, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
+  MotorReset = 7, // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
 }
 
 function App() {
-  const [isMasterConnected, setIsMasterConnected] = useState(true);
-  const [isSlaveConnected, setIsSlaveConnected] = useState(false);
+  const [isController1Connected, setIsController1Connected] = useState(true);
+  const [isController2Connected, setIsController2Connected] = useState(false);
   const [motorAngles, setMotorAngles] = useState([
     100, 200, 300, 200, 300, 100, 150, 255,
   ]);
   const [commandSequence, setCommandSequence] = useState([
-    [4, 0],
-    [4, 1],
-    [4, 2],
-    [4, 3],
-    [4, 4],
-    [4, 5],
-    [4, 6],
-    [4, 7],
+    [7, 0],
+    [7, 1],
+    [7, 2],
+    [7, 3],
+    [7, 4],
+    [7, 5],
+    [7, 6],
+    [7, 7],
   ]);
+  const [isSequencePlaying, setIsSequencePlaying] = useState(true)
 
   function setMotorAngle(motorId: number, angle: number) {
     // TODO: Actually send the motor move message
@@ -75,44 +77,47 @@ function App() {
           <NavbarItem>
             <Button
               as={Link}
-              color={isMasterConnected ? "success" : "danger"}
+              color={isController1Connected ? "success" : "danger"}
               href="#"
               variant="flat"
               onClick={(_) => {
-                setIsMasterConnected(!isMasterConnected);
+                setIsController1Connected(!isController1Connected);
               }}
             >
-              Master: {isMasterConnected ? "Connected" : "Disconnected"}
+              Controller 1:{" "}
+              {isController1Connected ? "Connected" : "Disconnected"}
             </Button>
           </NavbarItem>
-          <NavbarItem>
-            <Button
-              as={Link}
-              color={isSlaveConnected ? "success" : "danger"}
-              variant="flat"
-              onClick={(_) => {
-                setIsSlaveConnected(!isSlaveConnected);
-              }}
-            >
-              Slave: {isSlaveConnected ? "Connected" : "Disconnected"}
-            </Button>
-          </NavbarItem>
+          {isController1Connected && (
+            <NavbarItem>
+              <Button
+                as={Link}
+                color={isController2Connected ? "success" : "danger"}
+                variant="flat"
+                onClick={(_) => {
+                  setIsController2Connected(!isController2Connected);
+                }}
+              >
+                Controller 2:{" "}
+                {isController2Connected ? "Connected" : "Disconnected"}
+              </Button>
+            </NavbarItem>
+          )}
         </NavbarContent>
       </Navbar>
 
-      <div className="columns-2">
-        <Card className="flex flex-col gap-2 w-full h-full max-w-md items-start justify-center">
-          <CardHeader className="w-full h-full max-h-md items-start">
-            <h4 className="font-semibold leading-none text-default-600 align-middle">
-              Motor Configuration
-            </h4>
+      <div className="flex space-x-4 items-stretch">
+        <Divider className="my-3" orientation="vertical" />
+        <Card className="space-x-2 w-full h-full grow items-start">
+          <CardHeader className="flex">
+            <h4 className="grow font-semibold">Motor Configuration</h4>
+            <Button className="object-right">Reset All</Button>
           </CardHeader>
-          <Divider className="my-3" />
           <CardBody>
             {motorAngles.map((angle, index) => (
               <>
                 <MotorController
-                  key={`motor${index}`}
+                  key={index}
                   motorId={index}
                   angle={angle}
                   onAngleChange={setMotorAngle}
@@ -124,28 +129,40 @@ function App() {
           </CardBody>
         </Card>
 
-        <Card className="flex flex-col gap-2 w-full h-full max-w-md items-start justify-center">
-          <CardHeader className="w-full h-full max-h-md items-start">
-            <h4 className="font-semibold leading-none text-default-600 align-middle">
-              Sequencer
-            </h4>
+        <Card className="w-full grow items-start item-center">
+          <CardHeader className="flex">
+            <h4 className="grow font-semibold">Sequencer</h4>
+            <Button isIconOnly className="object-right" onClick={() => setIsSequencePlaying(!isSequencePlaying) }>
+              <FontAwesomeIcon icon={isSequencePlaying ? "play" : "stop"} />
+            </Button>
           </CardHeader>
-          <Divider className="my-3" />
-          <CardBody>
+          <CardBody className="flex flex-col w-full h-full">
+            {/* TODO: Make the TextArea grow to the full available space */}
             <Textarea
+              className="grow"
               isReadOnly
               variant="bordered"
               defaultValue={describe(commandSequence)}
             />
             <Divider className="my-3" />
-            <div className="flex flex-row gap-2 w-full h-full max-w-md items-start justify-center">
-              <Button className="justify-center">Cut</Button>
-              <Button className="justify-center">Delay</Button>
-              <Button className="justify-center">Extrude</Button>
-              <Button className="justify-center">Save</Button>
+            {/* TODO: Center the icons */}
+            <div className="flex flex-row gap-2 max-w-md items-center">
+              <Button isIconOnly>
+                <FontAwesomeIcon icon="scissors" />
+              </Button>
+              <Button isIconOnly>
+                <FontAwesomeIcon icon="clock" />
+              </Button>
+              <Button isIconOnly>
+                <FontAwesomeIcon icon="tape" />
+              </Button>
+              <Button isIconOnly>
+                <FontAwesomeIcon icon="circle-plus" />
+              </Button>
             </div>
           </CardBody>
         </Card>
+        <Divider className="my-3" orientation="vertical" />
       </div>
     </>
   );
