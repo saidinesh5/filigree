@@ -51,7 +51,7 @@ uint32_t motor_move(int motor_id, float angle, bool is_cutting = false, bool is_
   MotorDriver *motor = motors[motor_id];
 
   if (motor->StatusReg().bit.AlertsPresent) {
-    return motor->StatusReg().reg;
+    return motor->AlertReg().reg;
   }
 
   if (is_cutting) {
