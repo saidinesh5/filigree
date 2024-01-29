@@ -1,41 +1,45 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-import '@fortawesome/fontawesome-svg-core/styles.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import "@fortawesome/fontawesome-svg-core/styles.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faArrowRotateLeft,
   faCirclePlus,
   faClock,
+  faDharmachakra,
+  faDownload,
   faMinus,
+  faPause,
   faPlay,
   faPlus,
   faScissors,
   faStop,
-  faTape
+  faTape,
 } from "@fortawesome/free-solid-svg-icons";
 
-library.add(faArrowRotateLeft,
+library.add(
+  faArrowRotateLeft,
   faCirclePlus,
   faClock,
+  faDharmachakra,
+  faDownload,
   faMinus,
+  faPause,
   faPlay,
   faPlus,
   faScissors,
   faStop,
-  faTape);
+  faTape,
+);
 
-import {NextUIProvider} from '@nextui-org/react'
+import { NextUIProvider } from "@nextui-org/react";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <NextUIProvider>
-      <main className="dark text-foreground">
-        <div className='h-screen'>
-          <App />
-        </div>
-      </main>
+      <App />
     </NextUIProvider>
   </React.StrictMode>,
-)
+);

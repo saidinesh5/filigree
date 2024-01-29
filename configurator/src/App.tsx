@@ -16,17 +16,7 @@ import "./App.css";
 
 import MotorController from "./MotorController";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-
-enum MotorCommands {
-  MotorsCount = 0, // () -> uint32_t uint8 should be enough.
-  MotorAngle = 1, // (motor_id: uint8_t) -> float
-  MotorStatus = 2, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAlerts = 3, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAbsoluteMove = 4, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorRelativeMove = 5, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorCutMove = 6, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorReset = 7, // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
-}
+import { SequencerList } from "./Sequencer";
 
 function App() {
   const [isController1Connected, setIsController1Connected] = useState(true);
@@ -35,16 +25,26 @@ function App() {
     100, 200, 300, 200, 300, 100, 150, 255,
   ]);
   const [commandSequence, setCommandSequence] = useState([
-    [7, 0],
-    [7, 1],
-    [7, 2],
-    [7, 3],
-    [7, 4],
-    [7, 5],
-    [7, 6],
-    [7, 7],
+    { id: 0, command: [7, 0] },
+    { id: 1, command: [7, 1] },
+    { id: 2, command: [7, 2] },
+    { id: 3, command: [7, 3] },
+    { id: 4, command: [7, 4] },
+    { id: 5, command: [7, 5] },
+    { id: 6, command: [7, 6] },
+    { id: 7, command: [7, 7] },
+
+    { id: 10, command: [7, 0] },
+    { id: 11, command: [7, 1] },
+    { id: 12, command: [7, 2] },
+    { id: 13, command: [7, 3] },
+    { id: 14, command: [7, 4] },
+    { id: 15, command: [7, 5] },
+    { id: 16, command: [7, 6] },
+    { id: 17, command: [7, 7] },
   ]);
-  const [isSequencePlaying, setIsSequencePlaying] = useState(true)
+  const [isSequencePlaying, setIsSequencePlaying] = useState(true);
+  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
 
   function setMotorAngle(motorId: number, angle: number) {
     // TODO: Actually send the motor move message
@@ -56,21 +56,11 @@ function App() {
     setMotorAngle(motorId, 0);
   }
 
-  function describe(sequence: number[][]): string {
-    return sequence
-      .map((bytes: number[], index: number): string => {
-        if (bytes[0] == MotorCommands.MotorReset) {
-          return `Step ${index + 1}: Reset Motor ${bytes[1]}`;
-        }
-        return "???";
-      })
-      .join("\n");
-  }
-
   return (
-    <>
-      <Navbar isBordered isBlurred={false}>
+    <div className="">
+      <Navbar isBordered isBlurred={false} position="static">
         <NavbarBrand>
+          <FontAwesomeIcon icon="dharmachakra" />
           <p className="font-bold text-inherit">Silver Filigree Configurator</p>
         </NavbarBrand>
         <NavbarContent className="hidden sm:flex gap-4" justify="center">
@@ -106,65 +96,78 @@ function App() {
         </NavbarContent>
       </Navbar>
 
-      <div className="flex space-x-4 items-stretch">
-        <Divider className="my-3" orientation="vertical" />
-        <Card className="space-x-2 w-full h-full grow items-start">
+      <div className="applicationgrid">
+        <Card className="leftpane max-w-xxl">
           <CardHeader className="flex">
             <h4 className="grow font-semibold">Motor Configuration</h4>
             <Button className="object-right">Reset All</Button>
           </CardHeader>
           <CardBody>
             {motorAngles.map((angle, index) => (
-              <>
+              <div key={index}>
                 <MotorController
-                  key={index}
                   motorId={index}
                   angle={angle}
                   onAngleChange={setMotorAngle}
                   onResetMotor={resetMotor}
                 />
-                <Divider className="my-3" />
-              </>
+                {index != motorAngles.length - 1 ? (
+                  <Divider className="my-2" />
+                ) : (
+                  ""
+                )}
+              </div>
             ))}
           </CardBody>
         </Card>
 
-        <Card className="w-full grow items-start item-center">
-          <CardHeader className="flex">
+        <Card className="rightpane max-w-xxl h-full">
+          <CardHeader className="flex gap-1">
             <h4 className="grow font-semibold">Sequencer</h4>
-            <Button isIconOnly className="object-right" onClick={() => setIsSequencePlaying(!isSequencePlaying) }>
-              <FontAwesomeIcon icon={isSequencePlaying ? "play" : "stop"} />
+            <Button
+              isIconOnly
+              className="object-right"
+              onClick={() => setIsSequencePlaying(!isSequencePlaying)}
+            >
+              <FontAwesomeIcon icon={isSequencePlaying ? "play" : "pause"} />
+            </Button>
+            <Button
+              isIconOnly
+              className="object-right"
+              onClick={() => setIsSequencePlaying(!isSequencePlaying)}
+            >
+              <FontAwesomeIcon icon="download" />
             </Button>
           </CardHeader>
-          <CardBody className="flex flex-col w-full h-full">
-            {/* TODO: Make the TextArea grow to the full available space */}
-            <Textarea
-              className="grow"
-              isReadOnly
-              variant="bordered"
-              defaultValue={describe(commandSequence)}
+          <CardBody>
+            <SequencerList
+              commandSequence={commandSequence}
+              currentSequenceIndex={currentSequenceIndex}
+              onCurrentSequenceIndexChanged={(index) => {
+                console.log(index);
+                setCurrentSequenceIndex(index);
+              }}
             />
             <Divider className="my-3" />
             {/* TODO: Center the icons */}
-            <div className="flex flex-row gap-2 max-w-md items-center">
-              <Button isIconOnly>
-                <FontAwesomeIcon icon="scissors" />
-              </Button>
-              <Button isIconOnly>
-                <FontAwesomeIcon icon="clock" />
-              </Button>
+            <div className="flex gap-unit-4xl justify-center">
               <Button isIconOnly>
                 <FontAwesomeIcon icon="tape" />
               </Button>
+              <Button isIconOnly>
+                <FontAwesomeIcon icon="scissors" />
+              </Button>
+              {/* <Button isIconOnly>
+                <FontAwesomeIcon icon="clock" />
+              </Button> */}
               <Button isIconOnly>
                 <FontAwesomeIcon icon="circle-plus" />
               </Button>
             </div>
           </CardBody>
         </Card>
-        <Divider className="my-3" orientation="vertical" />
       </div>
-    </>
+    </div>
   );
 }
 

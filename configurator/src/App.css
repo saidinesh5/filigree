@@ -1,0 +1,33 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden;
+  padding: 10pt;
+}
+
+.applicationgrid {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+  grid-gap: 10pt;
+}
+
+.leftpane {
+  grid-row: 1;
+  grid-column: 1;
+  height: 100%;
+  resize: none;
+}
+
+.rightpane {
+  grid-row: 1;
+  grid-column: 2;
+  height: 100%;
+  resize: none;
+}
