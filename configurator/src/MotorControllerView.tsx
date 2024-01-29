@@ -1,41 +1,42 @@
 import React, { useEffect } from "react";
 import { Slider, Button, Divider } from "@nextui-org/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Motor, MotorType } from "./Motor";
+import { observer } from "mobx-react-lite";
 
-export default function MotorController({
-  motorId,
-  angle,
-  onAngleChange,
-}: {
-  motorId: number;
-  angle: number;
-  onAngleChange: (motorId: number, angle: number) => void;
-  onResetMotor: (motorId: number) => void;
-}) {
+const MotorController = observer(({ motor }: { motor: Motor }) => {
+  const onAngleChange = (angle: number) => {
+    if (motor.motorType == MotorType.Extruder) {
+      motor.moveTo(angle);
+    } else {
+      motor.moveTo(Math.min(360, Math.max(0, angle)));
+    }
+  };
+
   return (
     <div className="flex items-center space-x-3 text-small">
-      <p className="w-1/10"> Motor {motorId} </p>
+      <p className="w-1/10"> Motor {motor.id} </p>
 
       <Divider orientation="vertical" />
 
       <Slider
         aria-label="angle"
         color="success"
-        value={angle}
+        value={motor.angle}
         minValue={0}
         maxValue={360}
         step={0.5}
         label="Angle"
         formatOptions={{ minimumFractionDigits: 1 }}
         onChange={(value: number | number[]) =>
-          onAngleChange(motorId, Array.isArray(value) ? value[0] : value)
+          onAngleChange(Array.isArray(value) ? value[0] : value)
         }
         startContent={
           <Button
             isIconOnly
             radius="full"
             onPress={() =>
-              onAngleChange(motorId, angle >= 0.5 ? angle - 0.5 : 0)
+              onAngleChange(motor.angle >= 0.5 ? motor.angle - 0.5 : 0)
             }
           >
             <FontAwesomeIcon icon="minus" />
@@ -46,7 +47,7 @@ export default function MotorController({
             isIconOnly
             radius="full"
             onPress={() =>
-              onAngleChange(motorId, angle <= 359.5 ? angle + 0.5 : 360)
+              onAngleChange(motor.angle <= 359.5 ? motor.angle + 0.5 : 360)
             }
           >
             <FontAwesomeIcon icon="plus" />
@@ -57,9 +58,16 @@ export default function MotorController({
 
       <Divider orientation="vertical" />
 
-      <Button isIconOnly className="justify-center w-1/10">
+      <Button
+        isDisabled={!motor.hasChanged}
+        isIconOnly
+        className="justify-center w-1/10"
+        onClick={() => motor.undo()}
+      >
         <FontAwesomeIcon icon="arrow-rotate-left" />
       </Button>
     </div>
   );
-}
+});
+
+export default MotorController;

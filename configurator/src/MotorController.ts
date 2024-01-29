@@ -1,6 +1,6 @@
 // Thanks to: https://github.com/tigoe/html-for-conndev/blob/main/webSerial/webserial.js
 
-class WebSerialPort {
+class MotorController {
   public port?: SerialPort;
   constructor(private onConnectionStatusChanged: (isConnected: boolean) => {}) {
     navigator.serial.addEventListener("connect", this.serialConnect);

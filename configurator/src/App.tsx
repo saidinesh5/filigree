@@ -13,39 +13,32 @@ import {
 } from "@nextui-org/react";
 import "./App.css";
 
-import MotorController from "./MotorController";
+import MotorController from "./MotorControllerView";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SequencerList } from "./Sequencer";
 import { ViewportList } from "react-viewport-list";
+import { Motor, MotorType } from "./Motor";
+import { MotorCommand } from "./MotorCommand";
 
 function App() {
   const [isController1Connected, setIsController1Connected] = useState(true);
   const [isController2Connected, setIsController2Connected] = useState(false);
-  const [motorAngles, setMotorAngles] = useState([
-    100, 200, 300, 200, 300, 100, 150, 255,
+  const [motors, setMotors] = useState<Motor[]>([
+    new Motor(0, MotorType.Extruder, null),
+    new Motor(1, MotorType.Default, null),
   ]);
-  const [commandSequence, setCommandSequence] = useState([
-    { id: 0, command: [7, 0] },
-    { id: 1, command: [7, 1] },
-    { id: 2, command: [7, 2] },
-    { id: 3, command: [7, 3] },
-    { id: 4, command: [7, 4] },
-    { id: 5, command: [7, 5] },
-    { id: 6, command: [7, 6] },
-    { id: 7, command: [7, 7] },
+  const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
+    { sequenceId: 0, command: [7, 0] },
+    { sequenceId: 1, command: [7, 1] },
+    { sequenceId: 2, command: [7, 2] },
+    { sequenceId: 3, command: [7, 3] },
+    { sequenceId: 4, command: [7, 4] },
+    { sequenceId: 5, command: [7, 5] },
+    { sequenceId: 6, command: [7, 6] },
+    { sequenceId: 7, command: [7, 7] },
   ]);
   const [isSequencePlaying, setIsSequencePlaying] = useState(true);
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
-
-  function setMotorAngle(motorId: number, angle: number) {
-    // TODO: Actually send the motor move message
-    setMotorAngles(motorAngles.map((x, i) => (i == motorId ? angle : x)));
-  }
-
-  function resetMotor(motorId: number) {
-    // TODO: Actually send the motor reset message
-    setMotorAngle(motorId, 0);
-  }
 
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -97,16 +90,11 @@ function App() {
           </CardHeader>
           <CardBody>
             <div className="list" ref={ref}>
-              <ViewportList viewportRef={ref} items={motorAngles}>
-                {(angle, index) => (
+              <ViewportList viewportRef={ref} items={motors}>
+                {(motor, index) => (
                   <div key={index}>
-                    <MotorController
-                      motorId={index}
-                      angle={angle}
-                      onAngleChange={setMotorAngle}
-                      onResetMotor={resetMotor}
-                    />
-                    {index != motorAngles.length - 1 ? (
+                    <MotorController motor={motor} />
+                    {index != motors.length - 1 ? (
                       <Divider className="my-2" />
                     ) : (
                       ""
@@ -115,7 +103,6 @@ function App() {
                 )}
               </ViewportList>
             </div>
-            ))
           </CardBody>
         </Card>
 
@@ -140,6 +127,9 @@ function App() {
           <CardBody>
             <SequencerList
               commandSequence={commandSequence}
+              setCommandSequence={(commands: MotorCommand[]) =>
+                setCommandSequence(commands)
+              }
               currentSequenceIndex={currentSequenceIndex}
               onCurrentSequenceIndexChanged={(index) => {
                 console.log(index);
@@ -148,16 +138,38 @@ function App() {
             />
             <Divider className="my-3" />
             <div className="flex gap-unit-4xl justify-center">
+              {/*
               <Button isIconOnly>
                 <FontAwesomeIcon icon="tape" />
               </Button>
+               <Button isIconOnly>
+                <FontAwesomeIcon icon="clock" />
+              </Button>
+              */}
+              {/* Add cut command to the sequencer*/}
               <Button isIconOnly>
                 <FontAwesomeIcon icon="scissors" />
               </Button>
-              {/* <Button isIconOnly>
-                <FontAwesomeIcon icon="clock" />
-              </Button> */}
-              <Button isIconOnly>
+              {/* Add move command to the sequencer*/}
+              <Button
+                isIconOnly
+                onClick={() => {
+                  let newCommands = [...commandSequence];
+                  for (let motor of motors) {
+                    if (motor.hasChanged) {
+                      newCommands.push({
+                        sequenceId: newCommands.length,
+                        command: motor.getCommand(),
+                      });
+                      motor.save();
+                    }
+                  }
+                  if (newCommands.length > commandSequence.length) {
+                    setCommandSequence(newCommands);
+                    setCurrentSequenceIndex(newCommands.length - 1);
+                  }
+                }}
+              >
                 <FontAwesomeIcon icon="circle-plus" />
               </Button>
             </div>
