@@ -6,6 +6,7 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faArrowRotateLeft,
+  faCircleMinus,
   faCirclePlus,
   faClock,
   faDharmachakra,
@@ -21,6 +22,7 @@ import {
 
 library.add(
   faArrowRotateLeft,
+  faCircleMinus,
   faCirclePlus,
   faClock,
   faDharmachakra,

@@ -20,22 +20,32 @@ export class Motor {
     makeAutoObservable(this);
   }
 
-  async moveTo(distance: number) {
-    this.angle = distance;
-    console.log(`Motor ${this.id}: Move to : ${distance}`);
+  async moveTo(value: number) {
+    this.angle = value;
+    console.info(`Motor ${this.id}: Move to : ${value}`);
+    await this.runCommand([
+      MotorCommands.MotorAbsoluteMove,
+      this.id,
+      this.angle,
+    ]);
   }
 
-  async moveBy(distance: number) {
-    this.angle += distance;
-    console.log(`Motor ${this.id}: Move by : ${distance}`);
+  // deprecated
+  async moveBy(value: number) {
+    this.angle += value;
+    console.log(`Motor ${this.id}: Move by : ${value}`);
+    await this.runCommand([MotorCommands.MotorAbsoluteMove, this.id, value]);
   }
 
   async undo() {
     this.angle = this.lastSavedAngle;
+    this.moveTo(this.angle);
   }
 
   async reset() {
     this.angle = 0;
+    this.lastSavedAngle = 0;
+    await this.runCommand([MotorCommands.MotorReset, this.id]);
   }
 
   get hasChanged() {
@@ -43,10 +53,10 @@ export class Motor {
   }
 
   async runCommand(command: MotorCommand): Promise<boolean> {
-    return true;
+    return false;
   }
 
-  getCommand(): number[] {
+  getCommand(): MotorCommand {
     return [MotorCommands.MotorAbsoluteMove, this.id, this.angle];
   }
 

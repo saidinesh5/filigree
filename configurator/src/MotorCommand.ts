@@ -1,5 +1,5 @@
-// Each Motor command will be a number array of 5 values:
-// [command id, param 1, param 2, param 3, param 4]
+// Each Motor command will be a number array of 3 values:
+// [command id, param 1, param 2]
 
 export enum MotorCommands {
   MotorsCount = 0, // () -> uint32_t uint8 should be enough.
@@ -12,7 +12,22 @@ export enum MotorCommands {
   MotorReset = 7, // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
 }
 
-export interface MotorCommand {
-  sequenceId: number;
-  command: number[];
-}
+export type MotorCommand = Array<number>;
+
+/*
+# The filigree file is a simple txt file
+# Lines starting with # are considered comments
+# Each line just contains a single Motor command as comma separated values
+# For eg.:
+
+#filigree-version: 1
+#command-count: 7
+7,0,0
+7,1,0
+7,2,0
+7,3,0
+7,4,0
+7,5,0
+7,6,0
+7,7,0
+*/

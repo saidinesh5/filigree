@@ -1,11 +1,12 @@
-import { Listbox, ListboxItem } from "@nextui-org/react";
 import { ReactNode, useEffect } from "react";
 import { MotorCommand, MotorCommands } from "./MotorCommand";
 
 import { useRef } from "react";
 import { ViewportList, ViewportListRef } from "react-viewport-list";
+import { Button } from "@nextui-org/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-function describe(command: number[]): string {
+function describe(command: MotorCommand): string {
   switch (command[0]) {
     case MotorCommands.MotorsCount:
       return `Get Motor Count`;
@@ -30,12 +31,12 @@ function describe(command: number[]): string {
 
 export function SequencerList({
   commandSequence,
-  setCommandSequence,
+  removeCommandSequenceEntry,
   currentSequenceIndex,
   onCurrentSequenceIndexChanged,
 }: {
   commandSequence: MotorCommand[];
-  setCommandSequence: (commands: MotorCommand[]) => void;
+  removeCommandSequenceEntry: (id: number) => void;
   currentSequenceIndex: number;
   onCurrentSequenceIndexChanged: (index: number) => void;
 }): ReactNode {
@@ -51,15 +52,22 @@ export function SequencerList({
   return (
     <div className="list" ref={ref}>
       <ViewportList viewportRef={ref} items={commandSequence} ref={listRef}>
-        {(item) => (
+        {(item, index) => (
           <div
-            key={item.sequenceId}
-            className={`list-item${currentSequenceIndex == item.sequenceId ? " selected" : ""}`}
+            key={index}
+            className={`flex flex-row list-item${currentSequenceIndex == index ? " selected" : ""}`}
             onClick={() => {
-              onCurrentSequenceIndexChanged(item.sequenceId);
+              onCurrentSequenceIndexChanged(index);
             }}
           >
-            {`${item.sequenceId + 1}: ${describe(item.command)}`}
+            <div className="flex-none">{`${index + 1}: ${describe(item)}`}</div>
+            {/* <Button
+              isIconOnly
+              className="flex-none"
+              onClick={() => removeCommandSequenceEntry(index)}
+            >
+              <FontAwesomeIcon icon="circle-minus" />
+            </Button> */}
           </div>
         )}
       </ViewportList>
