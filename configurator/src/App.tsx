@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Navbar,
   NavbarBrand,
@@ -10,13 +10,13 @@ import {
   CardBody,
   CardHeader,
   Divider,
-  Textarea,
 } from "@nextui-org/react";
 import "./App.css";
 
 import MotorController from "./MotorController";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SequencerList } from "./Sequencer";
+import { ViewportList } from "react-viewport-list";
 
 function App() {
   const [isController1Connected, setIsController1Connected] = useState(true);
@@ -33,15 +33,6 @@ function App() {
     { id: 5, command: [7, 5] },
     { id: 6, command: [7, 6] },
     { id: 7, command: [7, 7] },
-
-    { id: 10, command: [7, 0] },
-    { id: 11, command: [7, 1] },
-    { id: 12, command: [7, 2] },
-    { id: 13, command: [7, 3] },
-    { id: 14, command: [7, 4] },
-    { id: 15, command: [7, 5] },
-    { id: 16, command: [7, 6] },
-    { id: 17, command: [7, 7] },
   ]);
   const [isSequencePlaying, setIsSequencePlaying] = useState(true);
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
@@ -55,6 +46,8 @@ function App() {
     // TODO: Actually send the motor reset message
     setMotorAngle(motorId, 0);
   }
+
+  const ref = useRef<HTMLDivElement | null>(null);
 
   return (
     <div className="">
@@ -103,21 +96,26 @@ function App() {
             <Button className="object-right">Reset All</Button>
           </CardHeader>
           <CardBody>
-            {motorAngles.map((angle, index) => (
-              <div key={index}>
-                <MotorController
-                  motorId={index}
-                  angle={angle}
-                  onAngleChange={setMotorAngle}
-                  onResetMotor={resetMotor}
-                />
-                {index != motorAngles.length - 1 ? (
-                  <Divider className="my-2" />
-                ) : (
-                  ""
+            <div className="list" ref={ref}>
+              <ViewportList viewportRef={ref} items={motorAngles}>
+                {(angle, index) => (
+                  <div key={index}>
+                    <MotorController
+                      motorId={index}
+                      angle={angle}
+                      onAngleChange={setMotorAngle}
+                      onResetMotor={resetMotor}
+                    />
+                    {index != motorAngles.length - 1 ? (
+                      <Divider className="my-2" />
+                    ) : (
+                      ""
+                    )}
+                  </div>
                 )}
-              </div>
-            ))}
+              </ViewportList>
+            </div>
+            ))
           </CardBody>
         </Card>
 
@@ -149,7 +147,6 @@ function App() {
               }}
             />
             <Divider className="my-3" />
-            {/* TODO: Center the icons */}
             <div className="flex gap-unit-4xl justify-center">
               <Button isIconOnly>
                 <FontAwesomeIcon icon="tape" />

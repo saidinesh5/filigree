@@ -31,3 +31,28 @@ body {
   height: 100%;
   resize: none;
 }
+
+.list {
+  height: 75svh;
+  width: 100%;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.list-item {
+  flex: 0 0 auto;
+  padding: 1rem;
+  border-radius: 1rem;
+  background-color: rgb(44, 44, 46);
+  overflow: hidden;
+  max-width: 100%;
+  min-height: 42px;
+  margin-bottom: 0.5rem;
+}
+
+.selected {
+  background-color: rgb(66, 66, 255);
+}
