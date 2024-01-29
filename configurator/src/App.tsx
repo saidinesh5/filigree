@@ -20,8 +20,10 @@ import { ViewportList } from "react-viewport-list";
 import { Motor, MotorType } from "./Motor";
 import { MotorCommand } from "./MotorCommand";
 import { saveAs } from "file-saver";
+import { observer } from "mobx-react-lite";
+import { computed } from "mobx";
 
-function App() {
+const App = observer(() => {
   const [isController1Connected, setIsController1Connected] = useState(true);
   const [isController2Connected, setIsController2Connected] = useState(false);
   const [motors, setMotors] = useState<Motor[]>([
@@ -42,6 +44,10 @@ function App() {
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
 
   const ref = useRef<HTMLDivElement | null>(null);
+
+  const areMotorsUnchanged = computed(() => {
+    return motors.find((motor: Motor) => motor.hasChanged) == undefined;
+  });
 
   const addCommandSequenceEntries = () => {
     let newCommands = [...commandSequence];
@@ -198,7 +204,11 @@ function App() {
                 <FontAwesomeIcon icon="scissors" />
               </Button>
               {/* Add move command to the sequencer*/}
-              <Button isIconOnly onClick={addCommandSequenceEntries}>
+              <Button
+                isDisabled={areMotorsUnchanged.get()}
+                isIconOnly
+                onClick={addCommandSequenceEntries}
+              >
                 <FontAwesomeIcon icon="circle-plus" />
               </Button>
             </div>
@@ -207,6 +217,6 @@ function App() {
       </div>
     </div>
   );
-}
+});
 
 export default App;
