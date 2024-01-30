@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Slider, Button, Divider } from "@nextui-org/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Motor, MotorType } from "./Motor";
 import { observer } from "mobx-react-lite";
 
-const MotorController = observer(({ motor }: { motor: Motor }) => {
+const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
+  const [localAngle, setLocalAngle] = useState<number>(motor.angle);
   const onAngleChange = (angle: number) => {
     if (motor.motorType == MotorType.Extruder) {
       motor.moveTo(angle);
@@ -12,6 +13,8 @@ const MotorController = observer(({ motor }: { motor: Motor }) => {
       motor.moveTo(Math.min(360, Math.max(0, angle)));
     }
   };
+
+  useEffect(() => setLocalAngle(motor.angle), [motor.angle]);
 
   return (
     <div className="flex items-center space-x-3 text-small">
@@ -22,13 +25,16 @@ const MotorController = observer(({ motor }: { motor: Motor }) => {
       <Slider
         aria-label="angle"
         color="success"
-        value={motor.angle}
+        value={localAngle}
         minValue={0}
         maxValue={360}
         step={0.5}
         label="Angle"
         formatOptions={{ minimumFractionDigits: 1 }}
         onChange={(value: number | number[]) =>
+          setLocalAngle(Array.isArray(value) ? value[0] : value)
+        }
+        onChangeEnd={(value: number | number[]) =>
           onAngleChange(Array.isArray(value) ? value[0] : value)
         }
         startContent={
@@ -70,4 +76,4 @@ const MotorController = observer(({ motor }: { motor: Motor }) => {
   );
 });
 
-export default MotorController;
+export default MotorControllerView;
