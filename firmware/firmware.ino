@@ -1,38 +1,73 @@
 #include "ClearCore.h"
+#include "third-party/ArduinoJson/ArduinoJson.h"
 #include <Ethernet.h>
 #include <SPI.h>
 #include <stdint.h>
+
+#include "NvmManager.h"
+#include <SD.h>
+#include <SPI.h>
+
+namespace ClearCore {
+extern NvmManager &NvmMgr;
+}
 
 ///////////////////////////
 // Ethernet stuff
 // Configure with a manually assigned IP address
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}; // ClearCore MAC address
 IPAddress ip = IPAddress(192, 168, 0, 100);        // Set ClearCore's IP address
-const int PORT_NUM = 8888; // The port number on the server over which packets
-                           // will be sent/received
-const int MAX_PACKET_LENGTH =
-    100; // The maximum number of characters to receive from an incoming packet
-unsigned char
-    packetReceived[MAX_PACKET_LENGTH]; // Buffer for holding received packets
 
-// Initialize the ClearCore as a server listening for incoming
-// client connections on specified port (8888 by default)
+const int PORT_NUM = 8888;
 EthernetServer server = EthernetServer(PORT_NUM);
+
+#define start_pause_button_pin DI6
 
 ////////////////////////////
 // Motor stuff
 MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
 
-const long homing_velocity_limit = 10000;
-const long velocityLimit = 200;        // 10,000 steps per sec
-const long accelerationLimit = 100000; // pulses per sec^2
-const long resolution = 1600;          // number of steps for 1 revolution
-const long cutting_velocity = 60000;
-const long cutting_acceleration = 2000000;
+const long homing_velocity_limit = 10000; // 10000
+const long velocityLimit = 200;           // 200    // 10,000 steps per sec
+const long accelerationLimit = 100000;    // 100000  // pulses per sec^2
+const long resolution = 1600;       // 1600         // number of steps for 1
+                                    // revolution
+const long cutting_velocity = 6000; // 60000
+const long cutting_acceleration = 2000000; // 2000000
+
+union motor_type {
+  int data;
+  char motor[4];
+};
 
 //////////////////////////////////////////////////////////////////
+enum class Commands {
+  MotorsInitialize = 0,
+  MotorsCount = 1,
+  MotorStatus = 2,
+  MotorAlerts = 3,
+  MotorAbsoluteMove = 4,
+  MotorRelativeMove = 5,
+  MotorCutMove = 6,
+  MotorReset = 7,
+  MotorGetType = 8,
+  MotorSetType = 9
+};
+
+enum class MotorType {
+  Default = 0,
+  Extruder = 1,
+  CutterBottom = 2,
+  CutterTop = 3,
+  Disable = 4
+};
+
+File filigreeFile;
+bool isMaster = false; // SD card is not available
+volatile bool isRunning = true;
 bool isLogging = true;
+
 void Log(const char msg[]) {
   if (isLogging) {
     Serial.println(msg);
@@ -47,8 +82,8 @@ uint32_t motor_status(int motor_id) {
 
 uint32_t motor_alerts(int motor_id) { return motors[motor_id]->AlertReg().reg; }
 
-uint32_t motor_move(int motor_id, float angle, bool is_cutting = false,
-                    bool is_absolute = true) {
+uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
+                    bool is_cutting = false) {
   MotorDriver *motor = motors[motor_id];
 
   if (motor->StatusReg().bit.AlertsPresent) {
@@ -65,11 +100,7 @@ uint32_t motor_move(int motor_id, float angle, bool is_cutting = false,
 
   Log("Moving motors at particular velocity and position");
 
-  if (is_absolute) {
-    motor->Move(angle * resolution / 360.0, MotorDriver::MOVE_TARGET_ABSOLUTE);
-  } else {
-    motor->Move(angle * resolution / 360.0);
-  }
+  motor->Move(angle * resolution / 360.0, mode);
 
   while ((!motor->StepsComplete() ||
           motor->HlfbState() != MotorDriver::HLFB_ASSERTED) &&
@@ -88,6 +119,10 @@ uint32_t motor_move(int motor_id, float angle, bool is_cutting = false,
   return motor->AlertReg().reg;
 }
 
+uint32_t motor_angle() {
+  int angle = 0; // find the parameter where you can find angle
+  return angle;
+}
 uint32_t motor_reset(int motor_id) {
   MotorDriver *motor = motors[motor_id];
   motor->HlfbMode(
@@ -109,11 +144,54 @@ uint32_t motor_reset(int motor_id) {
       ;
   }
   Log("HLFB asserted");
+  delay(50);
   return motor->AlertReg().reg;
 }
 
+uint8_t motor_init_flag = false;
+uint32_t motors_initalize() {
+  if (motor_init_flag) {
+    return false;
+  }
+
+  else {
+    motor_init_flag = true;
+    for (int motor_id = 0; motor_id < motor_count(); motor_id++) {
+      motor_reset(motor_id);
+    }
+    return true;
+  }
+}
+
+uint32_t motor_get_type(int motor_id) {
+  motor_type get_mtr;
+  get_mtr.data = NvmMgr.Int32(NvmManager::NVM_LOC_USER_START);
+  if (get_mtr.data == 0) {
+    return 0;
+  } else {
+    return static_cast<uint32_t>(get_mtr.motor[motor_id]);
+  }
+}
+
+uint32_t motor_set_type(int motor_id, int Type) {
+  motor_type set_mtr;
+
+  // Read the existing motor_type data from NVM
+  set_mtr.data = NvmMgr.Int32(NvmManager::NVM_LOC_USER_START);
+
+  // Update the specific motor type
+  if (motor_id >= 0 && motor_id < 4) {
+    set_mtr.motor[motor_id] = static_cast<char>(Type);
+    NvmMgr.Int32(NvmManager::NVM_LOC_USER_START, set_mtr.data);
+  }
+}
+/////////////////////////////////////////////////////////////////////////
+
+void start_pause_button_callback() { isRunning = !isRunning; }
+
 void setup() {
-  // put your setup code here, to run once:
+  // seeprom_init();
+  //  put your setup code here, to run once:
   Serial.begin(9600);
   uint32_t timeout = 5000;
   uint32_t startTime = millis();
@@ -121,16 +199,19 @@ void setup() {
     continue;
   }
 
-  // Ethernet stuff
-  // Make sure the physical link is active before continuing
-  while (Ethernet.linkStatus() == LinkOFF) {
-    Serial.println("The Ethernet cable is unplugged...");
-    delay(10);
+  if (SD.begin() && SD.exists("filigree.txt")) {
+    Log("Found filigree.txt. Working as master.");
+    isMaster = true;
+    filigreeFile = SD.open("STEPS.txt");
+    ip = IPAddress(192, 168, 0, 101);
+    mac[0] = 0xEE;
+  } else {
+    Log("Unable to fetch filigree.txt. Working as slave.");
   }
 
   Ethernet.begin(mac, ip);
-  Serial.println("Assigned manual IP address: ");
-  Serial.println(Ethernet.localIP());
+  Log("Assigned manual IP address: ");
+  Log(Ethernet.localIP());
 
   server.begin();
 
@@ -142,26 +223,102 @@ void setup() {
       Connector::CPM_MODE_STEP_AND_DIR); // sets all motor connectors to step
                                          // and direction mode
   ///////////////////////////////////////////////////////
+
+  attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
+                  start_pause_button_callback, RISING);
 }
 
+/*
+ json rpc format:
+              0         1          2        3
+"method": [command , cntrl_id, motor_id ,parameter]
+ */
 void loop() {
-  int current_motor_num;
-  EthernetClient client = server.available();
+  if (!isRunning)
+    return;
+  JsonDocument doc;
+  if (isMaster) {
+    if (!filigreeFile.available()) { // for looping to work
+      filigreeFile.seek(0);
+    }
 
-  if (client.connected() && client.available() > 0) {
-    // TODO: Fill out RPC code
-    // Commands to support:
-    // enum class Commands {
-    // MotorsCount = 0,        // () -> uint32_t uint8 should be enough
-    // MotorAngle = 1,         // (motor_id: uint8_t) -> float
-    // MotorStatus = 2,        // (motor_id: uint8_t) -> uint32_t // As per
-    // MotorDriver.h MotorAlerts = 3,        // (motor_id: uint8_t) -> uint32_t
-    // // As per MotorDriver.h MotorAbsoluteMove = 4,  // (motor_id: uint8_t,
-    // angle: float) -> uint32_t // Motor_alerts MotorRelativeMove = 5   //
-    // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-    // MotorCutMove = 6        // (motor_id: uint8_t, angle: float) -> uint32_t
-    // // Motor_alerts MotorReset = 7          // (motor_id: uint8_t)  ->
-    // uint32_t // Motor_alerts
-    // };
+    String line = filigreeFile.readStringUntil('\n');
+    deserializeJson(doc, line);
+    executeCommand(doc);
+  } else {
+    EthernetClient client = server.available();
+    if (Serial.available()) {
+      deserializeJson(doc, Serial);
+      JsonDocument res = executeCommand(doc);
+      serializeJson(res, Serial);
+    } else if (client.connected() && client.available() > 0) {
+      deserializeJson(doc, client);
+      JsonDocument res = executeCommand(doc);
+      serializeJson(res, client);
+    } else {
+    }
   }
+}
+
+JsonDocument executeCommand(const JsonDocument &doc) {
+  JsonDocument res;
+  res["id"] = doc["id"];
+
+  if (doc.size() == 0)
+    return res;
+
+  Commands command;
+  int cmd;
+  if (doc.containsKey("method")) {
+    cmd = doc["method"][0].as<int>();
+  }
+
+  
+
+  switch (cmd) {
+  case static_cast<int>(Commands::MotorsInitialize):
+    res["result"] = motors_initalize();
+    break;
+
+  case static_cast<int>(Commands::MotorsCount):
+    res["result"] = motor_count();
+    break;
+
+  case static_cast<int>(Commands::MotorStatus):
+    res["result"] = motor_status(doc["method"][2]);
+
+    break;
+
+  case static_cast<int>(Commands::MotorAlerts):
+    res["result"] = motor_alerts(doc["method"][2]);
+    break;
+
+  case static_cast<int>(Commands::MotorAbsoluteMove):
+  case static_cast<int>(Commands::MotorRelativeMove):
+  case static_cast<int>(Commands::MotorCutMove): {
+    bool isCut = (cmd == static_cast<int>(Commands::MotorCutMove));
+    MotorDriver::MoveTarget moveTarget =
+        (cmd == static_cast<int>(Commands::MotorRelativeMove))
+            ? MotorDriver::MOVE_TARGET_REL_END_POSN
+            : MotorDriver::MOVE_TARGET_ABSOLUTE;
+    res["result"] =
+        motor_move(doc["method"][2], static_cast<float>(doc["method"][3]),
+                   moveTarget, isCut);
+  } break;
+
+  case static_cast<int>(Commands::MotorReset): {
+    res["result"] = motor_reset(doc["method"][2]);
+  } break;
+
+  case static_cast<int>(Commands::MotorGetType): {
+    res["result"] = motor_get_type(doc["method"][2]);
+  } break;
+
+  case static_cast<int>(Commands::MotorSetType): {
+    res["result"] = motor_set_type(static_cast<int>(doc["method"][2]),
+                                   static_cast<int>(doc["method"][3]));
+  }
+  }
+
+  return res;
 }
