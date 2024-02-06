@@ -12,6 +12,8 @@ namespace ClearCore {
 extern NvmManager &NvmMgr;
 }
 
+const char *FILIGREE_FILE_NAME = "filigree.txt";
+
 ///////////////////////////
 // Ethernet stuff
 // Configure with a manually assigned IP address
@@ -199,10 +201,10 @@ void setup() {
     continue;
   }
 
-  if (SD.begin() && SD.exists("filigree.txt")) {
+  if (SD.begin() && SD.exists(FILIGREE_FILE_NAME)) {
     Log("Found filigree.txt. Working as master.");
     isMaster = true;
-    filigreeFile = SD.open("STEPS.txt");
+    filigreeFile = SD.open(FILIGREE_FILE_NAME);
     ip = IPAddress(192, 168, 0, 101);
     mac[0] = 0xEE;
   } else {
@@ -211,7 +213,7 @@ void setup() {
 
   Ethernet.begin(mac, ip);
   Log("Assigned manual IP address: ");
-  Log(Ethernet.localIP());
+  Serial.println(Ethernet.localIP());
 
   server.begin();
 

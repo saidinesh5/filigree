@@ -4,7 +4,7 @@
 fail_fast: true
 # Don't run pre-commit on files under third-party/
 exclude: "^\
-  (third-party/.*)\
+  (firmware/third-party/.*)\
   "
 
 repos:
