@@ -18,7 +18,7 @@ const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
 
   return (
     <div className="flex items-center space-x-3 text-small">
-      <p className="w-1/10"> Motor {motor.id} </p>
+      <p className="w-1/10"> Motor {motor.displayIndex} </p>
 
       <Divider orientation="vertical" />
 

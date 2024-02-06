@@ -5,40 +5,60 @@ import { useRef } from "react";
 import { ViewportList, ViewportListRef } from "react-viewport-list";
 import { Button } from "@nextui-org/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import MotorController from "./MotorController";
 
-function describe(command: MotorCommand): string {
+//TODO: The value you see must matche what is passed to Motor
+function motorDisplayIndex(
+  motorControllers: MotorController[],
+  command: MotorCommand,
+) {
+  const controllerId = command[1];
+  const motorId = command[2];
+  if (controllerId == 0) {
+    return motorId + 1;
+  } else {
+    return motorControllers[controllerId - 1].motorCount + motorId + 1;
+  }
+}
+
+function describe(
+  motorControllers: MotorController[],
+  command: MotorCommand,
+): string {
   switch (command[0]) {
     case MotorCommands.MotorsInitialize:
-      return `Initialize Motors: ${command[1]} - ${command[2]}`;
+      return `Initialize Motors of Controller ${command[1] + 1}`;
     case MotorCommands.MotorsCount:
       return `Get Motor Count`;
     case MotorCommands.MotorStatus:
-      return `Get Motor Status ${command[1]}`;
+      return `Get Motor Status of Motor ${motorDisplayIndex(motorControllers, command)}`;
     case MotorCommands.MotorAlerts:
-      return `Get Motor Alerts ${command[1]}`;
+      return `Get Motor Alerts ${motorDisplayIndex(motorControllers, command)}`;
     case MotorCommands.MotorAbsoluteMove:
-      return `Move Motor ${command[1]} to ${command[2]} deg`;
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to ${command[3]} deg`;
     case MotorCommands.MotorRelativeMove:
-      return `Move Motor ${command[1]} by ${command[2]} deg`;
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} by ${command[3]} deg`;
     case MotorCommands.MotorCutMove:
-      return `Move Motor ${command[1]} to cut`;
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to cut`;
     case MotorCommands.MotorReset:
-      return `Reset Motor ${command[1]}`;
+      return `Reset Motor ${motorDisplayIndex(motorControllers, command)}`;
     case MotorCommands.MotorGetType:
       return `Get Motor type for motor: ${command[1]}`;
     case MotorCommands.MotorSetType:
-      return `Set Motor type for motor: ${command[1]} to ${command[2]}`;
+      return `Set Motor type for motor: ${command[1]} to ${motorDisplayIndex(motorControllers, command)}`;
     default:
       return "???";
   }
 }
 
 export function SequencerList({
+  motorControllers,
   commandSequence,
   removeCommandSequenceEntry,
   currentSequenceIndex,
   onCurrentSequenceIndexChanged,
 }: {
+  motorControllers: MotorController[];
   commandSequence: MotorCommand[];
   removeCommandSequenceEntry: (id: number) => void;
   currentSequenceIndex: number;
@@ -67,7 +87,10 @@ export function SequencerList({
             }}
           >
             <div className="flex">
-              <div className="grow">{`${index + 1}: ${describe(item)}`}</div>
+              <div className="grow">{`${index + 1}: ${describe(
+                motorControllers,
+                item,
+              )}`}</div>
               <Button
                 isIconOnly
                 className="object-right"

@@ -1,11 +1,13 @@
 import { makeAutoObservable } from "mobx";
 import { MotorCommand, MotorCommands } from "./MotorCommand";
+import MotorController from "./MotorController";
 
 export enum MotorType {
   Default = 0,
   Extruder = 1,
   CutterBottom = 2,
   CutterTop = 3,
+  Disabled = 4,
 }
 
 export class Motor {
@@ -13,18 +15,20 @@ export class Motor {
   public lastSavedAngle: number = 0;
 
   constructor(
+    private controller: MotorController,
     public id: number,
     public motorType: MotorType,
-    private port: MotorController,
+    public displayIndex: number,
   ) {
     makeAutoObservable(this);
   }
 
   async moveTo(value: number) {
     this.angle = value;
-    console.info(`Motor ${this.id}: Move to : ${value}`);
+    console.info(`Motor ${this.displayIndex}: Move to : ${value}`);
     await this.runCommand([
       MotorCommands.MotorAbsoluteMove,
+      this.controller.id,
       this.id,
       this.angle,
     ]);
@@ -33,8 +37,13 @@ export class Motor {
   // deprecated
   async moveBy(value: number) {
     this.angle += value;
-    console.log(`Motor ${this.id}: Move by : ${value}`);
-    await this.runCommand([MotorCommands.MotorAbsoluteMove, this.id, value]);
+    console.log(`Motor ${this.displayIndex}: Move by : ${value}`);
+    await this.runCommand([
+      MotorCommands.MotorAbsoluteMove,
+      this.controller.id,
+      this.id,
+      value,
+    ]);
   }
 
   async undo() {
@@ -45,7 +54,11 @@ export class Motor {
   async reset() {
     this.angle = 0;
     this.lastSavedAngle = 0;
-    await this.runCommand([MotorCommands.MotorReset, this.id]);
+    await this.runCommand([
+      MotorCommands.MotorReset,
+      this.controller.id,
+      this.id,
+    ]);
   }
 
   get hasChanged() {
@@ -57,7 +70,12 @@ export class Motor {
   }
 
   getCommand(): MotorCommand {
-    return [MotorCommands.MotorAbsoluteMove, this.id, this.angle];
+    return [
+      MotorCommands.MotorAbsoluteMove,
+      this.controller.id,
+      this.id,
+      this.angle,
+    ];
   }
 
   save() {

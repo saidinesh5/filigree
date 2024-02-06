@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Navbar,
   NavbarBrand,
@@ -13,34 +13,55 @@ import {
 } from "@nextui-org/react";
 import "./App.css";
 
-import MotorController from "./MotorControllerView";
+import MotorController from "./MotorController";
+import MotorControllerView from "./MotorControllerView";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SequencerList } from "./Sequencer";
 import { ViewportList } from "react-viewport-list";
 import { Motor, MotorType } from "./Motor";
-import { MotorCommand } from "./MotorCommand";
+import { MotorCommand, MotorCommands } from "./MotorCommand";
 import { saveAs } from "file-saver";
 import { observer } from "mobx-react-lite";
 import { computed } from "mobx";
 
 const App = observer(() => {
-  const [isController1Connected, setIsController1Connected] = useState(true);
-  const [isController2Connected, setIsController2Connected] = useState(false);
+  const motorControllers = [new MotorController(0), new MotorController(1)];
   const [motors, setMotors] = useState<Motor[]>([
-    new Motor(0, MotorType.Extruder, null),
-    new Motor(1, MotorType.Default, null),
+    new Motor(motorControllers[0], 0, MotorType.Extruder, 1),
+    new Motor(motorControllers[0], 1, MotorType.Default, 2),
+    new Motor(motorControllers[0], 2, MotorType.Default, 3),
+    new Motor(motorControllers[0], 3, MotorType.Default, 4),
+    new Motor(motorControllers[1], 0, MotorType.Default, 5),
+    new Motor(motorControllers[1], 1, MotorType.Default, 6),
+    new Motor(motorControllers[1], 2, MotorType.Default, 7),
+    new Motor(motorControllers[1], 3, MotorType.Default, 8),
   ]);
+
+  navigator.serial?.addEventListener("connect", (event: Event) => {
+    // this event occurs every time a new serial device
+    // connects via USB:
+    console.log(event.target, "connected");
+  });
+  navigator.serial.addEventListener("disconnect", (event: Event) => {
+    // this event occurs every time a new serial device
+    // disconnects via USB:
+    // for (let m of motorControllers) {
+    //   if (m.port == event.target) {
+    //     console.log(event.target, "is no longer available");
+    //   }
+    // }
+    console.log(event.target, "disconnected");
+  });
   const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
-    [7, 0, 0],
-    [7, 1, 0],
-    [7, 2, 0],
-    [7, 3, 0],
-    [7, 4, 0],
-    [7, 5, 0],
-    [7, 6, 0],
-    [7, 7, 0],
+    [MotorCommands.MotorsInitialize, 0],
+    [MotorCommands.MotorsInitialize, 1],
+    [MotorCommands.MotorAbsoluteMove, 0, 0, 20],
+    [MotorCommands.MotorAbsoluteMove, 0, 1, 20],
+    [MotorCommands.MotorAbsoluteMove, 0, 2, 20],
+    [MotorCommands.MotorAbsoluteMove, 0, 3, 20],
   ]);
-  const [isSequencePlaying, setIsSequencePlaying] = useState(true);
+  const [isSequencePlaying, setIsSequencePlaying] = useState(false);
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
 
   const ref = useRef<HTMLDivElement | null>(null);
@@ -74,12 +95,28 @@ const App = observer(() => {
     }
   };
 
-  const startPlayback = () => {
+  const startPlayback = async () => {
+    console.log("start playback");
     setIsSequencePlaying(true);
+    startPlaybackLoop();
   };
 
-  const stopPlayback = () => {
+  const pausePlayback = () => {
+    console.log("pause playback");
     setIsSequencePlaying(false);
+  };
+
+  const startPlaybackLoop = async () => {
+    console.log(commandSequence.slice(currentSequenceIndex), isSequencePlaying);
+    for await (const command of commandSequence.slice(currentSequenceIndex)) {
+      if (isSequencePlaying) {
+        await new Promise((r) => setTimeout(r, 500));
+        setCurrentSequenceIndex(
+          (currentSequenceIndex + 1) % commandSequence.length,
+        );
+        console.log(command);
+      }
+    }
   };
 
   const downloadCommandSequence = () => {
@@ -105,35 +142,24 @@ const App = observer(() => {
           <p className="font-bold text-inherit">Silver Filigree Configurator</p>
         </NavbarBrand>
         <NavbarContent className="hidden sm:flex gap-4" justify="center">
-          <NavbarItem>
-            <Button
-              as={Link}
-              color={isController1Connected ? "success" : "danger"}
-              href="#"
-              variant="flat"
-              onClick={(_) => {
-                setIsController1Connected(!isController1Connected);
-              }}
-            >
-              Controller 1:{" "}
-              {isController1Connected ? "Connected" : "Disconnected"}
-            </Button>
-          </NavbarItem>
-          {isController1Connected && (
-            <NavbarItem>
+          {motorControllers.map((controller, index) => (
+            <NavbarItem key={index}>
               <Button
                 as={Link}
-                color={isController2Connected ? "success" : "danger"}
+                color={controller.isConnected ? "success" : "danger"}
                 variant="flat"
                 onClick={(_) => {
-                  setIsController2Connected(!isController2Connected);
+                  if (controller.isConnected) {
+                    controller.closePort();
+                  } else {
+                    controller.openPort();
+                  }
                 }}
               >
-                Controller 2:{" "}
-                {isController2Connected ? "Connected" : "Disconnected"}
+                {`Controller ${controller.id + 1}: ${controller.isConnected ? "Connected" : "Disconnected"}`}
               </Button>
             </NavbarItem>
-          )}
+          ))}
         </NavbarContent>
       </Navbar>
 
@@ -148,7 +174,7 @@ const App = observer(() => {
               <ViewportList viewportRef={ref} items={motors}>
                 {(motor, index) => (
                   <div key={index}>
-                    <MotorController motor={motor} />
+                    <MotorControllerView motor={motor} />
                     {index != motors.length - 1 ? (
                       <Divider className="my-2" />
                     ) : (
@@ -167,9 +193,9 @@ const App = observer(() => {
             <Button
               isIconOnly
               className="object-right"
-              onClick={() => setIsSequencePlaying(!isSequencePlaying)}
+              onClick={isSequencePlaying ? pausePlayback : startPlayback}
             >
-              <FontAwesomeIcon icon={isSequencePlaying ? "play" : "pause"} />
+              <FontAwesomeIcon icon={isSequencePlaying ? "pause" : "play"} />
             </Button>
             <Button
               isIconOnly
@@ -181,11 +207,11 @@ const App = observer(() => {
           </CardHeader>
           <CardBody>
             <SequencerList
+              motorControllers={motorControllers}
               commandSequence={commandSequence}
               removeCommandSequenceEntry={removeCommandSequenceEntry}
               currentSequenceIndex={currentSequenceIndex}
               onCurrentSequenceIndexChanged={(index) => {
-                console.log(index);
                 setCurrentSequenceIndex(index);
               }}
             />

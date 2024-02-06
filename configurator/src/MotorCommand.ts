@@ -15,6 +15,8 @@ export enum MotorCommands {
 }
 
 export type MotorCommand = Array<number>;
+// Motor command format:
+// [MotorCommandId, ControllerId, MotorId, CommandParam]
 
 /*
 # The filigree file is a simple txt file
@@ -24,12 +26,12 @@ export type MotorCommand = Array<number>;
 
 #filigree-version: 1
 #command-count: 7
-7,0,0
-7,1,0
-7,2,0
-7,3,0
-7,4,0
-7,5,0
-7,6,0
-7,7,0
+7,0,0,0
+7,0,1,0
+7,0,2,0
+7,0,3,0
+7,1,0,0
+7,1,1,0
+7,1,2,0
+7,1,3,0
 */

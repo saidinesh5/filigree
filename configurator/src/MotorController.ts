@@ -1,16 +1,33 @@
 // Thanks to: https://github.com/tigoe/html-for-conndev/blob/main/webSerial/webserial.js
 
-class MotorController {
+import { action, makeObservable, observable } from "mobx";
+
+export default class MotorController {
   public port?: SerialPort;
-  constructor(private onConnectionStatusChanged: (isConnected: boolean) => {}) {
-    navigator.serial.addEventListener("connect", this.serialConnect);
-    navigator.serial.addEventListener("disconnect", this.serialDisconnect);
+  public isConnected: boolean = false;
+  public motorCount: number = 4;
+
+  private activeRequests: { requestID: number; callback: () => {} } = {};
+
+  constructor(public id: number) {
+    makeObservable(this, {
+      isConnected: observable,
+      motorCount: observable,
+      updateConnectionStatus: action,
+    });
+  }
+
+  updateConnectionStatus(value: boolean) {
+    this.isConnected = value;
   }
 
   async openPort() {
     try {
       this.port = await navigator.serial.requestPort();
-      await this.port.open({ baudRate: 9600 });
+      // if(!this.port.) await this.port.open({ baudRate: 9600 });
+      this.updateConnectionStatus(this.port?.readable ? true : false);
+      console.log("~~~", this.port.getInfo());
+      console.log("~~", await this.readSerialString());
     } catch (err) {
       console.error("There was an error opening the serial port:", err);
     }
@@ -21,6 +38,7 @@ class MotorController {
       this.port.readable?.getReader().cancel();
       await this.port.close();
       this.port = undefined;
+      this.updateConnectionStatus(false);
     }
   }
 
@@ -61,19 +79,7 @@ class MotorController {
     return result;
   }
 
-  // this event occurs every time a new serial device
-  // connects via USB:
-  serialConnect(event: Event) {
-    console.log(event.target, "connected");
-  }
-
-  // this event occurs every time a new serial device
-  // disconnects via USB:
-  serialDisconnect(event: Event) {
-    console.log(event.target, "disconnected");
-    if (event.target == this.port) {
-      this.port = undefined;
-      this.onConnectionStatusChanged(false);
-    }
+  async doRequest(): Promise<any> {
+    return {};
   }
 }
