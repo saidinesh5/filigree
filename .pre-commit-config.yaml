@@ -45,5 +45,5 @@ repos:
     hooks:
       - id: clang-format
         files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx|ino)$
-        args: [--Werror]
+        args: [-i]
       - id: cpplint
