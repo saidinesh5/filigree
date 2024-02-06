@@ -8,10 +8,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 function describe(command: MotorCommand): string {
   switch (command[0]) {
+    case MotorCommands.MotorsInitialize:
+      return `Initialize Motors: ${command[1]} - ${command[2]}`;
     case MotorCommands.MotorsCount:
       return `Get Motor Count`;
-    case MotorCommands.MotorAngle:
-      return `Get Motor Angle ${command[1]}`;
     case MotorCommands.MotorStatus:
       return `Get Motor Status ${command[1]}`;
     case MotorCommands.MotorAlerts:
@@ -24,6 +24,10 @@ function describe(command: MotorCommand): string {
       return `Move Motor ${command[1]} to cut`;
     case MotorCommands.MotorReset:
       return `Reset Motor ${command[1]}`;
+    case MotorCommands.MotorGetType:
+      return `Get Motor type for motor: ${command[1]}`;
+    case MotorCommands.MotorSetType:
+      return `Set Motor type for motor: ${command[1]} to ${command[2]}`;
     default:
       return "???";
   }

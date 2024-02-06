@@ -2,14 +2,16 @@
 // [command id, param 1, param 2]
 
 export enum MotorCommands {
-  MotorsCount = 0, // () -> uint32_t uint8 should be enough.
-  MotorAngle = 1, // (motor_id: uint8_t) -> float
-  MotorStatus = 2, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAlerts = 3, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAbsoluteMove = 4, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorRelativeMove = 5, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorCutMove = 6, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorReset = 7, // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
+  MotorsInitialize = 0,
+  MotorsCount = 1,
+  MotorStatus = 2,
+  MotorAlerts = 3,
+  MotorAbsoluteMove = 4,
+  MotorRelativeMove = 5,
+  MotorCutMove = 6,
+  MotorReset = 7,
+  MotorGetType = 8,
+  MotorSetType = 9,
 }
 
 export type MotorCommand = Array<number>;
