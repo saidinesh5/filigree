@@ -17,6 +17,7 @@ extern NvmManager &NvmMgr;
 // Configure with a manually assigned IP address
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}; // ClearCore MAC address
 IPAddress ip = IPAddress(192, 168, 0, 100);        // Set ClearCore's IP address
+
 const int PORT_NUM = 8888;
 EthernetServer server = EthernetServer(PORT_NUM);
 
@@ -26,6 +27,7 @@ EthernetServer server = EthernetServer(PORT_NUM);
 // Motor stuff
 MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
+
 const long homing_velocity_limit = 10000; // 10000
 const long velocityLimit = 200;           // 200    // 10,000 steps per sec
 const long accelerationLimit = 100000;    // 100000  // pulses per sec^2

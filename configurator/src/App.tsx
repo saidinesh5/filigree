@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Navbar,
   NavbarBrand,
@@ -10,162 +10,239 @@ import {
   CardBody,
   CardHeader,
   Divider,
-  Textarea,
 } from "@nextui-org/react";
 import "./App.css";
 
 import MotorController from "./MotorController";
+import MotorControllerView from "./MotorControllerView";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { SequencerList } from "./Sequencer";
+import { ViewportList } from "react-viewport-list";
+import { Motor, MotorType } from "./Motor";
+import { MotorCommand, MotorCommands } from "./MotorCommand";
+import { saveAs } from "file-saver";
+import { observer } from "mobx-react-lite";
+import { computed } from "mobx";
 
-enum MotorCommands {
-  MotorsCount = 0, // () -> uint32_t uint8 should be enough.
-  MotorAngle = 1, // (motor_id: uint8_t) -> float
-  MotorStatus = 2, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAlerts = 3, // (motor_id: uint8_t) -> uint32_t // As per MotorDriver.h
-  MotorAbsoluteMove = 4, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorRelativeMove = 5, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorCutMove = 6, // (motor_id: uint8_t, angle: float) -> uint32_t // Motor_alerts
-  MotorReset = 7, // (motor_id: uint8_t)  -> uint32_t // Motor_alerts
-}
-
-function App() {
-  const [isController1Connected, setIsController1Connected] = useState(true);
-  const [isController2Connected, setIsController2Connected] = useState(false);
-  const [motorAngles, setMotorAngles] = useState([
-    100, 200, 300, 200, 300, 100, 150, 255,
+const App = observer(() => {
+  const motorControllers = [new MotorController(0), new MotorController(1)];
+  const [motors, setMotors] = useState<Motor[]>([
+    new Motor(motorControllers[0], 0, MotorType.Extruder, 1),
+    new Motor(motorControllers[0], 1, MotorType.Default, 2),
+    new Motor(motorControllers[0], 2, MotorType.Default, 3),
+    new Motor(motorControllers[0], 3, MotorType.Default, 4),
+    new Motor(motorControllers[1], 0, MotorType.Default, 5),
+    new Motor(motorControllers[1], 1, MotorType.Default, 6),
+    new Motor(motorControllers[1], 2, MotorType.Default, 7),
+    new Motor(motorControllers[1], 3, MotorType.Default, 8),
   ]);
-  const [commandSequence, setCommandSequence] = useState([
-    [7, 0],
-    [7, 1],
-    [7, 2],
-    [7, 3],
-    [7, 4],
-    [7, 5],
-    [7, 6],
-    [7, 7],
+
+  navigator.serial?.addEventListener("connect", (event: Event) => {
+    // this event occurs every time a new serial device
+    // connects via USB:
+    console.log(event.target, "connected");
+  });
+  navigator.serial.addEventListener("disconnect", (event: Event) => {
+    // this event occurs every time a new serial device
+    // disconnects via USB:
+    // for (let m of motorControllers) {
+    //   if (m.port == event.target) {
+    //     console.log(event.target, "is no longer available");
+    //   }
+    // }
+    console.log(event.target, "disconnected");
+  });
+  const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
+    [MotorCommands.MotorsInitialize, 0],
+    [MotorCommands.MotorsInitialize, 1],
+    [MotorCommands.MotorAbsoluteMove, 0, 0, 20],
+    [MotorCommands.MotorAbsoluteMove, 0, 1, 20],
+    [MotorCommands.MotorAbsoluteMove, 0, 2, 20],
+    [MotorCommands.MotorAbsoluteMove, 0, 3, 20],
   ]);
-  const [isSequencePlaying, setIsSequencePlaying] = useState(true)
+  const [isSequencePlaying, setIsSequencePlaying] = useState(false);
+  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
 
-  function setMotorAngle(motorId: number, angle: number) {
-    // TODO: Actually send the motor move message
-    setMotorAngles(motorAngles.map((x, i) => (i == motorId ? angle : x)));
-  }
+  const ref = useRef<HTMLDivElement | null>(null);
 
-  function resetMotor(motorId: number) {
-    // TODO: Actually send the motor reset message
-    setMotorAngle(motorId, 0);
-  }
+  const areMotorsUnchanged = computed(() => {
+    return motors.find((motor: Motor) => motor.hasChanged) == undefined;
+  });
 
-  function describe(sequence: number[][]): string {
-    return sequence
-      .map((bytes: number[], index: number): string => {
-        if (bytes[0] == MotorCommands.MotorReset) {
-          return `Step ${index + 1}: Reset Motor ${bytes[1]}`;
-        }
-        return "???";
-      })
-      .join("\n");
-  }
+  const addCommandSequenceEntries = () => {
+    let newCommands = [...commandSequence];
+    for (let motor of motors) {
+      if (motor.hasChanged) {
+        newCommands.push(motor.getCommand());
+        motor.save();
+      }
+    }
+    if (newCommands.length > commandSequence.length) {
+      setCommandSequence(newCommands);
+      setCurrentSequenceIndex(newCommands.length - 1);
+    }
+  };
+
+  const removeCommandSequenceEntry = (id: number) => {
+    if (id >= commandSequence.length) return;
+
+    let newSequence = [...commandSequence];
+    newSequence.splice(id, 1);
+    setCommandSequence(newSequence);
+    if (currentSequenceIndex == commandSequence.length - 1) {
+      setCurrentSequenceIndex(currentSequenceIndex - 1);
+    }
+  };
+
+  const startPlayback = async () => {
+    console.log("start playback");
+    setIsSequencePlaying(true);
+    startPlaybackLoop();
+  };
+
+  const pausePlayback = () => {
+    console.log("pause playback");
+    setIsSequencePlaying(false);
+  };
+
+  const startPlaybackLoop = async () => {
+    console.log(commandSequence.slice(currentSequenceIndex), isSequencePlaying);
+    for await (const command of commandSequence.slice(currentSequenceIndex)) {
+      if (isSequencePlaying) {
+        await new Promise((r) => setTimeout(r, 500));
+        setCurrentSequenceIndex(
+          (currentSequenceIndex + 1) % commandSequence.length,
+        );
+        console.log(command);
+      }
+    }
+  };
+
+  const downloadCommandSequence = () => {
+    let blob = new Blob(
+      [
+        [
+          "#filigree-version: 1",
+          `#command-count: ${commandSequence.length}`,
+          ...commandSequence.map((command) => command.join(",")),
+        ].join("\n"),
+      ],
+      { type: "text/plain;charset=utf-8" },
+    );
+
+    saveAs(blob, "filigree.txt");
+  };
 
   return (
-    <>
-      <Navbar isBordered isBlurred={false}>
+    <div className="">
+      <Navbar isBordered isBlurred={false} position="static">
         <NavbarBrand>
+          <FontAwesomeIcon icon="dharmachakra" />
           <p className="font-bold text-inherit">Silver Filigree Configurator</p>
         </NavbarBrand>
         <NavbarContent className="hidden sm:flex gap-4" justify="center">
-          <NavbarItem>
-            <Button
-              as={Link}
-              color={isController1Connected ? "success" : "danger"}
-              href="#"
-              variant="flat"
-              onClick={(_) => {
-                setIsController1Connected(!isController1Connected);
-              }}
-            >
-              Controller 1:{" "}
-              {isController1Connected ? "Connected" : "Disconnected"}
-            </Button>
-          </NavbarItem>
-          {isController1Connected && (
-            <NavbarItem>
+          {motorControllers.map((controller, index) => (
+            <NavbarItem key={index}>
               <Button
                 as={Link}
-                color={isController2Connected ? "success" : "danger"}
+                color={controller.isConnected ? "success" : "danger"}
                 variant="flat"
                 onClick={(_) => {
-                  setIsController2Connected(!isController2Connected);
+                  if (controller.isConnected) {
+                    controller.closePort();
+                  } else {
+                    controller.openPort();
+                  }
                 }}
               >
-                Controller 2:{" "}
-                {isController2Connected ? "Connected" : "Disconnected"}
+                {`Controller ${controller.id + 1}: ${controller.isConnected ? "Connected" : "Disconnected"}`}
               </Button>
             </NavbarItem>
-          )}
+          ))}
         </NavbarContent>
       </Navbar>
 
-      <div className="flex space-x-4 items-stretch">
-        <Divider className="my-3" orientation="vertical" />
-        <Card className="space-x-2 w-full h-full grow items-start">
+      <div className="applicationgrid">
+        <Card className="leftpane max-w-xxl">
           <CardHeader className="flex">
             <h4 className="grow font-semibold">Motor Configuration</h4>
             <Button className="object-right">Reset All</Button>
           </CardHeader>
           <CardBody>
-            {motorAngles.map((angle, index) => (
-              <>
-                <MotorController
-                  key={index}
-                  motorId={index}
-                  angle={angle}
-                  onAngleChange={setMotorAngle}
-                  onResetMotor={resetMotor}
-                />
-                <Divider className="my-3" />
-              </>
-            ))}
+            <div className="list" ref={ref}>
+              <ViewportList viewportRef={ref} items={motors}>
+                {(motor, index) => (
+                  <div key={index}>
+                    <MotorControllerView motor={motor} />
+                    {index != motors.length - 1 ? (
+                      <Divider className="my-2" />
+                    ) : (
+                      ""
+                    )}
+                  </div>
+                )}
+              </ViewportList>
+            </div>
           </CardBody>
         </Card>
 
-        <Card className="w-full grow items-start item-center">
-          <CardHeader className="flex">
+        <Card className="rightpane max-w-xxl h-full">
+          <CardHeader className="flex gap-1">
             <h4 className="grow font-semibold">Sequencer</h4>
-            <Button isIconOnly className="object-right" onClick={() => setIsSequencePlaying(!isSequencePlaying) }>
-              <FontAwesomeIcon icon={isSequencePlaying ? "play" : "stop"} />
+            <Button
+              isIconOnly
+              className="object-right"
+              onClick={isSequencePlaying ? pausePlayback : startPlayback}
+            >
+              <FontAwesomeIcon icon={isSequencePlaying ? "pause" : "play"} />
+            </Button>
+            <Button
+              isIconOnly
+              className="object-right"
+              onClick={downloadCommandSequence}
+            >
+              <FontAwesomeIcon icon="download" />
             </Button>
           </CardHeader>
-          <CardBody className="flex flex-col w-full h-full">
-            {/* TODO: Make the TextArea grow to the full available space */}
-            <Textarea
-              className="grow"
-              isReadOnly
-              variant="bordered"
-              defaultValue={describe(commandSequence)}
+          <CardBody>
+            <SequencerList
+              motorControllers={motorControllers}
+              commandSequence={commandSequence}
+              removeCommandSequenceEntry={removeCommandSequenceEntry}
+              currentSequenceIndex={currentSequenceIndex}
+              onCurrentSequenceIndexChanged={(index) => {
+                setCurrentSequenceIndex(index);
+              }}
             />
             <Divider className="my-3" />
-            {/* TODO: Center the icons */}
-            <div className="flex flex-row gap-2 max-w-md items-center">
-              <Button isIconOnly>
-                <FontAwesomeIcon icon="scissors" />
-              </Button>
-              <Button isIconOnly>
-                <FontAwesomeIcon icon="clock" />
-              </Button>
+            <div className="flex gap-unit-4xl justify-center">
+              {/*
               <Button isIconOnly>
                 <FontAwesomeIcon icon="tape" />
               </Button>
+               <Button isIconOnly>
+                <FontAwesomeIcon icon="clock" />
+              </Button>
+              */}
+              {/* Add cut command to the sequencer*/}
               <Button isIconOnly>
+                <FontAwesomeIcon icon="scissors" />
+              </Button>
+              {/* Add move command to the sequencer*/}
+              <Button
+                isDisabled={areMotorsUnchanged.get()}
+                isIconOnly
+                onClick={addCommandSequenceEntries}
+              >
                 <FontAwesomeIcon icon="circle-plus" />
               </Button>
             </div>
           </CardBody>
         </Card>
-        <Divider className="my-3" orientation="vertical" />
       </div>
-    </>
+    </div>
   );
-}
+});
 
 export default App;
