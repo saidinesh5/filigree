@@ -125,7 +125,9 @@ const App = observer(() => {
         [
           "#filigree-version: 1",
           `#command-count: ${commandSequence.length}`,
-          ...commandSequence.map((command) => command.join(",")),
+          ...commandSequence.map((command, index) =>
+            JSON.stringify({ method: command.join(","), id: index }),
+          ),
         ].join("\n"),
       ],
       { type: "text/plain;charset=utf-8" },
