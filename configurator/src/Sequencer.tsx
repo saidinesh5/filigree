@@ -87,7 +87,7 @@ export function SequencerList({
             }}
           >
             <div className="flex">
-              <div className="grow">{`${index + 1}: ${describe(
+              <div className="grow select-none">{`${index + 1}: ${describe(
                 motorControllers,
                 item,
               )}`}</div>
