@@ -55,19 +55,23 @@ export function SequencerList({
         {(item, index) => (
           <div
             key={index}
-            className={`flex flex-row list-item${currentSequenceIndex == index ? " selected" : ""}`}
+            className={`list-item${
+              currentSequenceIndex == index ? " selected" : ""
+            }`}
             onClick={() => {
               onCurrentSequenceIndexChanged(index);
             }}
           >
-            <div className="flex-none">{`${index + 1}: ${describe(item)}`}</div>
-            {/* <Button
-              isIconOnly
-              className="flex-none"
-              onClick={() => removeCommandSequenceEntry(index)}
-            >
-              <FontAwesomeIcon icon="circle-minus" />
-            </Button> */}
+            <div className="flex">
+              <div className="grow">{`${index + 1}: ${describe(item)}`}</div>
+              <Button
+                isIconOnly
+                className="object-right"
+                onClick={() => removeCommandSequenceEntry(index)}
+              >
+                <FontAwesomeIcon icon="circle-minus" />
+              </Button>
+            </div>
           </div>
         )}
       </ViewportList>
