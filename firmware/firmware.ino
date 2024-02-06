@@ -273,8 +273,6 @@ JsonDocument executeCommand(const JsonDocument &doc) {
     cmd = doc["method"][0].as<int>();
   }
 
-  
-
   switch (cmd) {
   case static_cast<int>(Commands::MotorsInitialize):
     res["result"] = motors_initalize();
