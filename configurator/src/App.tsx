@@ -136,6 +136,25 @@ const App = observer(() => {
     saveAs(blob, "filigree.txt");
   };
 
+  const MotorControllerButton = observer(
+    ({ controller }: { controller: MotorController }) => (
+      <Button
+        as={Link}
+        color={controller.isConnected ? "success" : "danger"}
+        variant="flat"
+        onClick={(_) => {
+          if (controller.isConnected) {
+            controller.closePort();
+          } else {
+            controller.openPort();
+          }
+        }}
+      >
+        {`Controller ${controller.id + 1}: ${controller.isConnected ? "Connected" : "Disconnected"}`}
+      </Button>
+    ),
+  );
+
   return (
     <div className="">
       <Navbar isBordered isBlurred={false} position="static">
@@ -146,20 +165,9 @@ const App = observer(() => {
         <NavbarContent className="hidden sm:flex gap-4" justify="center">
           {motorControllers.map((controller, index) => (
             <NavbarItem key={index}>
-              <Button
-                as={Link}
-                color={controller.isConnected ? "success" : "danger"}
-                variant="flat"
-                onClick={(_) => {
-                  if (controller.isConnected) {
-                    controller.closePort();
-                  } else {
-                    controller.openPort();
-                  }
-                }}
-              >
-                {`Controller ${controller.id + 1}: ${controller.isConnected ? "Connected" : "Disconnected"}`}
-              </Button>
+              <MotorControllerButton
+                controller={controller}
+              ></MotorControllerButton>
             </NavbarItem>
           ))}
         </NavbarContent>
