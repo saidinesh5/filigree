@@ -44,12 +44,14 @@ MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
 
 const long homing_velocity_limit = 5000; // 10000
-uint32_t velocity_Limit = 500;           // 10,000 steps per sec
-uint32_t acceleration_Limit = 1000;      // 100000  // pulses per sec^2
+uint32_t velocity_Limit = 5000;           // 10,000 steps per sec
+uint32_t acceleration_Limit = 10000;      // 100000  // pulses per sec^2
 uint32_t resolution = 1600;       // 1600         // number of steps for 1
                                   // revolution
 uint32_t cutting_velocity = 6000; // 60000
 uint32_t cutting_acceleration = 2000000; // 2000000
+
+JsonDocument req, res;
 
 //////////////////////////////////////////////////////////////////
 enum class Commands {
@@ -92,7 +94,7 @@ enum class MotorType {
 File filigreeFile;
 bool isMaster = false; // SD card is not available
 volatile bool isRunning = true;
-bool isLogging = true;
+bool isLogging = false;
 
 void Log(const char msg[]) {
   if (isLogging) {
@@ -310,7 +312,8 @@ void setup() {
 void loop() {
   if (!isRunning)
     return;
-  JsonDocument doc;
+
+  req.clear();
   if (isMaster) {                    // this will contain client code
     if (!filigreeFile.available()) { // for looping to work
       filigreeFile.seek(0);
@@ -320,52 +323,60 @@ void loop() {
     if (line.length() == 0 || line[0] == '#') {
       return;
     }
-    deserializeJson(doc, line);
-    JsonDocument res = executeCommand(doc, line);
-    serializeJson(res, Serial);
-    Serial.println();
+    deserializeJson(req, line);
+    if (executeCommand(line)) {
+      serializeJson(res, Serial);
+      Serial.println();
+    }
   } else {
     EthernetClient client = server.available();
     if (Serial.available()) {
-      deserializeJson(doc, Serial);
-      const JsonDocument res = executeCommand(doc, "");
-      serializeJson(res, Serial);
-      Serial.println();
+      String line = Serial.readStringUntil('\n');
+      deserializeJson(req, line);
+      if (executeCommand("")) {
+        serializeJson(res, Serial);
+        Serial.println();
+      }
     } else if (client.connected() &&
                client.available() > 0) {
-      deserializeJson(doc, client);
-      const JsonDocument res = executeCommand(doc, "");
-      serializeJson(res, client);
-      client.println();
+      String line = client.readStringUntil('\n');
+      deserializeJson(req, line);
+      if (executeCommand("")) {
+        serializeJson(res, client);
+        client.println();
+      }
     } else {
       // Do nothing
     }
   }
 }
 
-JsonDocument executeCommand(const JsonDocument &doc, const String &line) {
-  JsonDocument res;
-  res["id"] = doc["id"];
-  if (doc.size() == 0)
-    return res;
+bool executeCommand(const String &line) {
+  if (req.size() == 0)
+    return true;
 
-  if (doc["method"][PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
+  res.clear();
+  res["id"] = req["id"];
+
+  if (req["method"][PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
     slave.println(line);
     while (!slave.available()) {
       Log("Waiting for slave...");
     }
-    JsonDocument response;
-    deserializeJson(response, slave);
-    if (response.containsKey("error")) {
+
+    String line = slave.readStringUntil('\n');
+    deserializeJson(res, line);
+    if (res.containsKey("error")) {
       isRunning = false;
+      return false;
     }
-    return response;
+    return true;
   }
 
   Commands command;
   int cmd;
-  if (doc.containsKey("method")) {
-    cmd = doc["method"][PARAM_COMMAND_ID].as<int>();
+  if (req.containsKey("method")) {
+    cmd = req["method"][PARAM_COMMAND_ID].as<int>();
   }
 
   switch (cmd) {
@@ -378,12 +389,11 @@ JsonDocument executeCommand(const JsonDocument &doc, const String &line) {
     break;
 
   case static_cast<int>(Commands::MotorStatus):
-    res["result"] = motor_status(doc["method"][PARAM_MOTOR_ID]);
-
+    res["result"] = motor_status(req["method"][PARAM_MOTOR_ID]);
     break;
 
   case static_cast<int>(Commands::MotorAlerts):
-    res["result"] = motor_alerts(doc["method"][PARAM_MOTOR_ID]);
+    res["result"] = motor_alerts(req["method"][PARAM_MOTOR_ID]);
     break;
 
   case static_cast<int>(Commands::MotorAbsoluteMove):
@@ -395,28 +405,28 @@ JsonDocument executeCommand(const JsonDocument &doc, const String &line) {
             ? MotorDriver::MOVE_TARGET_REL_END_POSN
             : MotorDriver::MOVE_TARGET_ABSOLUTE;
     res["result"] =
-        motor_move(doc["method"][PARAM_MOTOR_ID],
-                   static_cast<float>(doc["method"][PARAM_COMMAND_PARAM]),
+        motor_move(req["method"][PARAM_MOTOR_ID],
+                   req["method"][PARAM_COMMAND_PARAM],
                    moveTarget, isCut);
   } break;
 
   case static_cast<int>(Commands::MotorReset): {
-    res["result"] = motor_reset(doc["method"][PARAM_MOTOR_ID]);
+    res["result"] = motor_reset(req["method"][PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorGetType): {
-    res["result"] = motor_get_type(doc["method"][PARAM_MOTOR_ID]);
+    res["result"] = motor_get_type(req["method"][PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorSetType): {
     res["result"] =
-        motor_set_type(static_cast<int>(doc["method"][PARAM_MOTOR_ID]),
-                       static_cast<int>(doc["method"][PARAM_COMMAND_PARAM]));
+        motor_set_type(static_cast<int>(req["method"][PARAM_MOTOR_ID]),
+                       static_cast<int>(req["method"][PARAM_COMMAND_PARAM]));
   } break;
 
   default:
     res["error"] = "Invalid Motor Command";
   }
 
-  return res;
+  return true;
 }

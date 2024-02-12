@@ -20,7 +20,7 @@ void setup() {
   uint32_t startTime = millis();
   while (!Serial && millis() - startTime < timeout) {
     continue;
-  
+
   }
 
     Ethernet.begin(mac, ip);
