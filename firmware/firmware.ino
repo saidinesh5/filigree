@@ -20,20 +20,21 @@ const char *FILIGREE_FILE_NAME = "filigree.txt";
 /*
 Slave acts as a server
 Master acts as a client
-
-
-
-
 */
 
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}; // ClearCore MAC address
-IPAddress client_ip = IPAddress(192, 168, 0, 100);        // Set ClearCore's IP address | slave==server
+const int PARAM_COMMAND_ID = 0;
+const int PARAM_CONTROLLER_ID = 1;
+const int PARAM_MOTOR_ID = 2;
+const int PARAM_COMMAND_PARAM = 3;
+
+byte client_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+byte server_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEE};
+// Set ClearCore's IP address | slave==server
+IPAddress client_ip = IPAddress(192, 168, 0, 100);
 IPAddress server_ip = IPAddress(192, 168, 0, 101);
 const int PORT_NUM = 8888;
 EthernetServer server = EthernetServer(PORT_NUM);
-EthernetClient client;
-
-
+EthernetClient slave;
 
 #define start_pause_button_pin DI6
 
@@ -43,17 +44,12 @@ MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
 
 const long homing_velocity_limit = 5000; // 10000
-const long velocityLimit = 200;          // 10,000 steps per sec
-const long accelerationLimit = 1000;    // 100000  // pulses per sec^2
-const long resolution = 1600;       // 1600         // number of steps for 1
-                                    // revolution
-const long cutting_velocity = 6000; // 60000
-const long cutting_acceleration = 2000000; // 2000000
-
-union motor_type {
-  int data;
-  char motor[4];
-};
+uint32_t velocity_Limit = 500;           // 10,000 steps per sec
+uint32_t acceleration_Limit = 1000;      // 100000  // pulses per sec^2
+uint32_t resolution = 1600;       // 1600         // number of steps for 1
+                                  // revolution
+uint32_t cutting_velocity = 6000; // 60000
+uint32_t cutting_acceleration = 2000000; // 2000000
 
 //////////////////////////////////////////////////////////////////
 enum class Commands {
@@ -67,14 +63,24 @@ enum class Commands {
   MotorReset = 7,
   MotorGetType = 8,
   MotorSetType = 9
+
 };
 
-     /*
- json rpc format:
-              0         1          2        3
+/*
+json rpc format:
+         0         1          2        3
 "method": [command , cntrl_id, motor_id ,parameter]
- */       
-
+*/
+typedef enum StorageVariables {
+  VelocityLimit = 0,
+  AccelerationLimit = 1,
+  CuttingVelocity = 2,
+  CuttingAcceleration = 3,
+  Motor1Type = 4,
+  Motor2Type = 5,
+  Motor3Type = 6,
+  Motor4Type = 7
+};
 enum class MotorType {
   Default = 0,
   Extruder = 1,
@@ -114,8 +120,8 @@ uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
     motor->VelMax(cutting_velocity);
     motor->AccelMax(cutting_acceleration);
   } else {
-    motor->VelMax(velocityLimit);
-    motor->AccelMax(accelerationLimit);
+    motor->VelMax(velocity_Limit);
+    motor->AccelMax(acceleration_Limit);
   }
 
   Log("Moving motors at particular velocity and position");
@@ -143,6 +149,7 @@ uint32_t motor_angle() {
   int angle = 0; // find the parameter where you can find angle
   return angle;
 }
+
 uint32_t motor_reset(int motor_id) {
   MotorDriver *motor = motors[motor_id];
   motor->HlfbMode(
@@ -150,8 +157,9 @@ uint32_t motor_reset(int motor_id) {
                                                // bipolar PWM
   motor->HlfbCarrier(MotorDriver::HLFB_CARRIER_482_HZ); // sets the HLFB carrier
                                                         // frequency to 482 Hz
-  motor->VelMax(velocityLimit);
-  motor->AccelMax(accelerationLimit); // sets the max acceleration for each move
+  motor->VelMax(velocity_Limit);
+  motor->AccelMax(
+      acceleration_Limit); // sets the max acceleration for each move
   motor->EnableRequest(true);
   Log("Motor Enabled, Waiting for HLFB...");
   // Waits for HLFB to assert (waits for homing to complete if applicable)
@@ -183,6 +191,45 @@ uint32_t motors_initalize() {
   }
 }
 
+uint32_t set_param(StorageVariables StrVar, uint32_t paramValue) {
+
+  uint8_t Storage[8]; // it should be  uint32_t for reading 4 bytes  data at
+                      // once
+  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
+  Storage[static_cast<uint32_t>(StrVar)] = paramValue;
+  NvmMgr.BlockWrite(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
+}
+
+uint32_t get_param(StorageVariables StrVar) {
+
+  uint8_t Storage[8]; // it should be  uint32_t for reading 4 bytes  data at
+                      // once
+  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
+  return Storage[static_cast<uint32_t>(StrVar)];
+}
+
+void init_param() {
+
+  uint8_t Storage[8]; // it should be  uint32_t for reading 4 bytes  data at
+                      // once
+  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
+  StorageVariables StrVar;
+
+  velocity_Limit = Storage[static_cast<uint32_t>(
+      StorageVariables::VelocityLimit)]; // 10,000 steps per sec
+  acceleration_Limit =
+      Storage[static_cast<uint32_t>(StorageVariables::AccelerationLimit)];
+  cutting_velocity = Storage[static_cast<uint32_t>(
+      StorageVariables::CuttingVelocity)]; // 60000
+  cutting_acceleration = Storage[static_cast<uint32_t>(
+      StorageVariables::CuttingAcceleration)]; // 2000000
+}
+
+union motor_type {
+  int data;
+  char motor[4];
+};
+
 uint32_t motor_get_type(int motor_id) {
   motor_type get_mtr;
   get_mtr.data = NvmMgr.Int32(NvmManager::NVM_LOC_USER_START);
@@ -209,11 +256,9 @@ uint32_t motor_set_type(int motor_id, int Type) {
 
 void start_pause_button_callback() { isRunning = !isRunning; }
 
-//true: 
-void SetMasterSlave(bool a){
-
-}
 void setup() {
+  // init_param();
+  delay(10);
   //  put your setup code here, to run once:
   Serial.begin(9600);
   uint32_t timeout = 5000;
@@ -226,28 +271,21 @@ void setup() {
     Log("Found filigree.txt. Working as master.");
     isMaster = true;
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
-    mac[0] = 0xEE;
-    Ethernet.begin(mac, server_ip);
+    Ethernet.begin(server_mac, server_ip);
     Log("Assigned manual IP address: ");
     delay(3000);
-    client.connect(server_ip,8888);  
-    if(client.connected()){
-      Serial.println("connected");
+    slave.connect(server_ip, 8888);
+    if (slave.connected()) {
+      Log("connected");
+    } else {
+      Log("not connected");
     }
-    else{
-        Serial.println("not connected");
-    }
-  
   } else {
     Log("Unable to fetch filigree.txt. Working as slave.");
-    Ethernet.begin(mac, server_ip);
+    Ethernet.begin(client_mac, server_ip);
     server.begin();
     delay(2000);
   }
-
-  // Serial.println(Ethernet.localIP());
-
-
 
   // Motor setup ////////////////////////////////////////////
   MotorMgr.MotorInputClocking(
@@ -273,76 +311,61 @@ void loop() {
   if (!isRunning)
     return;
   JsonDocument doc;
-  if (isMaster) {  //this will contain client code
+  if (isMaster) {                    // this will contain client code
     if (!filigreeFile.available()) { // for looping to work
       filigreeFile.seek(0);
     }
 
     String line = filigreeFile.readStringUntil('\n');
-    if (line[0] == '#') {
+    if (line.length() == 0 || line[0] == '#') {
       return;
     }
     deserializeJson(doc, line);
-    JsonDocument res=  executeCommand(doc);
+    JsonDocument res = executeCommand(doc, line);
     serializeJson(res, Serial);
-    if(res["client"] == 1){
-      client.println(line);
-      while (!client.available()) {
-        delay(10);
-      }
-
-      JsonDocument response;
-      deserializeJson(response, client);
-      if (response.containsKey("error")) {
-        isRunning = false;
-      }
-    }
-    else{
-      
-    }
+    Serial.println();
   } else {
-    client=server.available();
+    EthernetClient client = server.available();
     if (Serial.available()) {
       deserializeJson(doc, Serial);
-      JsonDocument res = executeCommand(doc);
+      const JsonDocument res = executeCommand(doc, "");
       serializeJson(res, Serial);
       Serial.println();
-    } else if (client.connected() && client.available() > 0) {//this will contain server code.
-      String line = client.readStringUntil('\n');
-      Serial.println(line);
-      deserializeJson(doc, line);
-      serializeJson(doc, Serial);
-      JsonDocument res = executeCommand(doc);
-      serializeJson(res, Serial);
-      serializeJson(res, client); //writes to ethernet
-      
+    } else if (client.connected() &&
+               client.available() > 0) {
+      deserializeJson(doc, client);
+      const JsonDocument res = executeCommand(doc, "");
+      serializeJson(res, client);
+      client.println();
     } else {
+      // Do nothing
     }
   }
 }
 
-JsonDocument executeRemoteCommand(const JsonDocument &doc) {
-
-}
-
-JsonDocument executeCommand(const JsonDocument &doc) {
+JsonDocument executeCommand(const JsonDocument &doc, const String &line) {
   JsonDocument res;
   res["id"] = doc["id"];
-  res["client"]=0;
   if (doc.size() == 0)
     return res;
 
-  if (doc["method"][1] == 1 && isMaster == true){
-    Serial.println("send to client");
-    res["client"] = 1;
-    return res;
-
+  if (doc["method"][PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
+    slave.println(line);
+    while (!slave.available()) {
+      Log("Waiting for slave...");
+    }
+    JsonDocument response;
+    deserializeJson(response, slave);
+    if (response.containsKey("error")) {
+      isRunning = false;
+    }
+    return response;
   }
 
   Commands command;
   int cmd;
   if (doc.containsKey("method")) {
-    cmd = doc["method"][0].as<int>();
+    cmd = doc["method"][PARAM_COMMAND_ID].as<int>();
   }
 
   switch (cmd) {
@@ -355,12 +378,12 @@ JsonDocument executeCommand(const JsonDocument &doc) {
     break;
 
   case static_cast<int>(Commands::MotorStatus):
-    res["result"] = motor_status(doc["method"][2]);
+    res["result"] = motor_status(doc["method"][PARAM_MOTOR_ID]);
 
     break;
 
   case static_cast<int>(Commands::MotorAlerts):
-    res["result"] = motor_alerts(doc["method"][2]);
+    res["result"] = motor_alerts(doc["method"][PARAM_MOTOR_ID]);
     break;
 
   case static_cast<int>(Commands::MotorAbsoluteMove):
@@ -372,22 +395,27 @@ JsonDocument executeCommand(const JsonDocument &doc) {
             ? MotorDriver::MOVE_TARGET_REL_END_POSN
             : MotorDriver::MOVE_TARGET_ABSOLUTE;
     res["result"] =
-        motor_move(doc["method"][2], static_cast<float>(doc["method"][3]),
+        motor_move(doc["method"][PARAM_MOTOR_ID],
+                   static_cast<float>(doc["method"][PARAM_COMMAND_PARAM]),
                    moveTarget, isCut);
   } break;
 
   case static_cast<int>(Commands::MotorReset): {
-    res["result"] = motor_reset(doc["method"][2]);
+    res["result"] = motor_reset(doc["method"][PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorGetType): {
-    res["result"] = motor_get_type(doc["method"][2]);
+    res["result"] = motor_get_type(doc["method"][PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorSetType): {
-    res["result"] = motor_set_type(static_cast<int>(doc["method"][2]),
-                                   static_cast<int>(doc["method"][3]));
-  }
+    res["result"] =
+        motor_set_type(static_cast<int>(doc["method"][PARAM_MOTOR_ID]),
+                       static_cast<int>(doc["method"][PARAM_COMMAND_PARAM]));
+  } break;
+
+  default:
+    res["error"] = "Invalid Motor Command";
   }
 
   return res;
