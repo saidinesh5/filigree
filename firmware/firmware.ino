@@ -17,11 +17,23 @@ const char *FILIGREE_FILE_NAME = "filigree.txt";
 ///////////////////////////
 // Ethernet stuff
 // Configure with a manually assigned IP address
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}; // ClearCore MAC address
-IPAddress ip = IPAddress(192, 168, 0, 100);        // Set ClearCore's IP address
+/*
+Slave acts as a server
+Master acts as a client
 
+
+
+
+*/
+
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}; // ClearCore MAC address
+IPAddress client_ip = IPAddress(192, 168, 0, 100);        // Set ClearCore's IP address | slave==server
+IPAddress server_ip = IPAddress(192, 168, 0, 101);
 const int PORT_NUM = 8888;
 EthernetServer server = EthernetServer(PORT_NUM);
+EthernetClient client;
+
+
 
 #define start_pause_button_pin DI6
 
@@ -30,9 +42,9 @@ EthernetServer server = EthernetServer(PORT_NUM);
 MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
 
-const long homing_velocity_limit = 10000; // 10000
-const long velocityLimit = 200;           // 200    // 10,000 steps per sec
-const long accelerationLimit = 100000;    // 100000  // pulses per sec^2
+const long homing_velocity_limit = 5000; // 10000
+const long velocityLimit = 200;          // 10,000 steps per sec
+const long accelerationLimit = 1000;    // 100000  // pulses per sec^2
 const long resolution = 1600;       // 1600         // number of steps for 1
                                     // revolution
 const long cutting_velocity = 6000; // 60000
@@ -56,6 +68,12 @@ enum class Commands {
   MotorGetType = 8,
   MotorSetType = 9
 };
+
+     /*
+ json rpc format:
+              0         1          2        3
+"method": [command , cntrl_id, motor_id ,parameter]
+ */       
 
 enum class MotorType {
   Default = 0,
@@ -168,8 +186,8 @@ uint32_t motors_initalize() {
 uint32_t motor_get_type(int motor_id) {
   motor_type get_mtr;
   get_mtr.data = NvmMgr.Int32(NvmManager::NVM_LOC_USER_START);
-  if (get_mtr.data == 0) {
-    return 0;
+  if (get_mtr.data == 255) {
+    return 255;
   } else {
     return static_cast<uint32_t>(get_mtr.motor[motor_id]);
   }
@@ -191,8 +209,11 @@ uint32_t motor_set_type(int motor_id, int Type) {
 
 void start_pause_button_callback() { isRunning = !isRunning; }
 
+//true: 
+void SetMasterSlave(bool a){
+
+}
 void setup() {
-  // seeprom_init();
   //  put your setup code here, to run once:
   Serial.begin(9600);
   uint32_t timeout = 5000;
@@ -205,17 +226,28 @@ void setup() {
     Log("Found filigree.txt. Working as master.");
     isMaster = true;
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
-    ip = IPAddress(192, 168, 0, 101);
     mac[0] = 0xEE;
+    Ethernet.begin(mac, server_ip);
+    Log("Assigned manual IP address: ");
+    delay(3000);
+    client.connect(server_ip,8888);  
+    if(client.connected()){
+      Serial.println("connected");
+    }
+    else{
+        Serial.println("not connected");
+    }
+  
   } else {
     Log("Unable to fetch filigree.txt. Working as slave.");
+    Ethernet.begin(mac, server_ip);
+    server.begin();
+    delay(2000);
   }
 
-  Ethernet.begin(mac, ip);
-  Log("Assigned manual IP address: ");
-  Serial.println(Ethernet.localIP());
+  // Serial.println(Ethernet.localIP());
 
-  server.begin();
+
 
   // Motor setup ////////////////////////////////////////////
   MotorMgr.MotorInputClocking(
@@ -228,6 +260,8 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
                   start_pause_button_callback, RISING);
+
+  delay(100);
 }
 
 /*
@@ -239,35 +273,71 @@ void loop() {
   if (!isRunning)
     return;
   JsonDocument doc;
-  if (isMaster) {
+  if (isMaster) {  //this will contain client code
     if (!filigreeFile.available()) { // for looping to work
       filigreeFile.seek(0);
     }
 
     String line = filigreeFile.readStringUntil('\n');
+    if (line[0] == '#') {
+      return;
+    }
     deserializeJson(doc, line);
-    executeCommand(doc);
+    JsonDocument res=  executeCommand(doc);
+    serializeJson(res, Serial);
+    if(res["client"] == 1){
+      client.println(line);
+      while (!client.available()) {
+        delay(10);
+      }
+
+      JsonDocument response;
+      deserializeJson(response, client);
+      if (response.containsKey("error")) {
+        isRunning = false;
+      }
+    }
+    else{
+      
+    }
   } else {
-    EthernetClient client = server.available();
+    client=server.available();
     if (Serial.available()) {
       deserializeJson(doc, Serial);
       JsonDocument res = executeCommand(doc);
       serializeJson(res, Serial);
-    } else if (client.connected() && client.available() > 0) {
-      deserializeJson(doc, client);
+      Serial.println();
+    } else if (client.connected() && client.available() > 0) {//this will contain server code.
+      String line = client.readStringUntil('\n');
+      Serial.println(line);
+      deserializeJson(doc, line);
+      serializeJson(doc, Serial);
       JsonDocument res = executeCommand(doc);
-      serializeJson(res, client);
+      serializeJson(res, Serial);
+      serializeJson(res, client); //writes to ethernet
+      
     } else {
     }
   }
 }
 
+JsonDocument executeRemoteCommand(const JsonDocument &doc) {
+
+}
+
 JsonDocument executeCommand(const JsonDocument &doc) {
   JsonDocument res;
   res["id"] = doc["id"];
-
+  res["client"]=0;
   if (doc.size() == 0)
     return res;
+
+  if (doc["method"][1] == 1 && isMaster == true){
+    Serial.println("send to client");
+    res["client"] = 1;
+    return res;
+
+  }
 
   Commands command;
   int cmd;
