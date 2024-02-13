@@ -326,8 +326,11 @@ void loop() {
     }
     deserializeJson(req, line);
     if (executeCommand(line)) {
-      serializeJson(res, Serial);
-      Serial.println();
+      String ResLine="";
+    //  serializeJson(res, Serial);
+     // Serial.println();
+     serializeJson(res,ResLine);
+     Serial.println(ResLine);
     }
   } else {
     EthernetClient client = server.available();
@@ -335,8 +338,12 @@ void loop() {
       String line = Serial.readStringUntil('\n');
       deserializeJson(req, line);
       if (executeCommand("")) {
-        serializeJson(res, Serial);
-        Serial.println();
+        String ResLine="";
+       // serializeJson(res, Serial);
+        //Serial.println();
+       serializeJson(res, ResLine);
+       Serial.println(ResLine);
+       
       }
     } else if (client.connected() &&
                client.available() > 0) {
