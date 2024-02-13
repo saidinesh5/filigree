@@ -310,6 +310,7 @@ void setup() {
 "method": [command , cntrl_id, motor_id ,parameter]
  */
 void loop() {
+
   if (!isRunning)
     return;
 
@@ -342,8 +343,12 @@ void loop() {
       String line = client.readStringUntil('\n');
       deserializeJson(req, line);
       if (executeCommand("")) {
-        serializeJson(res, client);
-        client.println();
+        String Line ="";
+        serializeJson(res,Line);
+        Serial.println(Line);
+        client.println(Line);
+       // serializeJson(res, client);
+       // client.println();
       }
     } else {
       // Do nothing
@@ -362,6 +367,7 @@ bool executeCommand(const String &line) {
     slave.println(line);
     while (!slave.available()) {
       Log("Waiting for slave...");
+      
     }
 
     String line = slave.readStringUntil('\n');
