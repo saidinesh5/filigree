@@ -1,5 +1,4 @@
 #include "ClearCore.h"
-#include "third-party/ArduinoJson/ArduinoJson.h"
 #include <Ethernet.h>
 #include <SPI.h>
 #include <stdint.h>
@@ -12,6 +11,61 @@ namespace ClearCore {
 extern NvmManager &NvmMgr;
 }
 
+enum MessageParam {
+  PARAM_REQUEST_ID = 0,
+  PARAM_COMMAND_ID = 1,
+  PARAM_CONTROLLER_ID = 2,
+  PARAM_MOTOR_ID = 3,
+  PARAM_COMMAND_PARAM = 4,
+  PARAM_RESPONSE_ERROR = 1,
+  PARAM_RESPONSE_RESULT = 2,
+  PARAM_COUNT = 5,
+};
+
+bool parseMessage(const String &line, int *message, int messageSize) {
+  if (line.length() == 0 || line[0] == '#') {
+    return true;
+  }
+
+  int value = 0;
+  bool isNegative = false;
+  int paramIndex = 0;
+
+  for (int i = 0; i < line.length() && paramIndex < messageSize; i++) {
+    if (line[i] == '-') {
+      isNegative = true;
+    } else if (isDigit(line[i])) {
+      value = 10 * value + line[i] - '0';
+    } else if (line[i] == ',') {
+      message[paramIndex] = (isNegative ? -1 : 1) * value;
+      value = 0;
+      isNegative = false;
+      paramIndex += 1;
+    } else {
+      // Do nothing
+    }
+  }
+
+  if (paramIndex == messageSize - 1) {
+    message[paramIndex] = value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+String createMessage(int *arr, int count) {
+  String res = "";
+  for (int i = 0; i < count; i++) {
+    if (i != 0) {
+      res += ',';
+    }
+    res += String(arr[i]);
+  }
+
+  return res;
+}
+
 const char *FILIGREE_FILE_NAME = "filigree.txt";
 
 ///////////////////////////
@@ -21,11 +75,6 @@ const char *FILIGREE_FILE_NAME = "filigree.txt";
 Slave acts as a server
 Master acts as a client
 */
-
-const int PARAM_COMMAND_ID = 0;
-const int PARAM_CONTROLLER_ID = 1;
-const int PARAM_MOTOR_ID = 2;
-const int PARAM_COMMAND_PARAM = 3;
 
 byte client_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 byte server_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEE};
@@ -44,14 +93,12 @@ MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
 
 const long homing_velocity_limit = 5000; // 10000
-uint32_t velocity_Limit = 5000;           // 10,000 steps per sec
-uint32_t acceleration_Limit = 10000;      // 100000  // pulses per sec^2
+uint32_t velocity_Limit = 5000;          // 10,000 steps per sec
+uint32_t acceleration_Limit = 10000;     // 100000  // pulses per sec^2
 uint32_t resolution = 1600;       // 1600         // number of steps for 1
                                   // revolution
 uint32_t cutting_velocity = 6000; // 60000
 uint32_t cutting_acceleration = 2000000; // 2000000
-
-JsonDocument req, res;
 
 //////////////////////////////////////////////////////////////////
 enum class Commands {
@@ -314,7 +361,6 @@ void loop() {
   if (!isRunning)
     return;
 
-  req.clear();
   if (isMaster) {                    // this will contain client code
     if (!filigreeFile.available()) { // for looping to work
       filigreeFile.seek(0);
@@ -324,89 +370,60 @@ void loop() {
     if (line.length() == 0 || line[0] == '#') {
       return;
     }
-    deserializeJson(req, line);
-    if (executeCommand(line)) {
-      String ResLine="";
-    //  serializeJson(res, Serial);
-     // Serial.println();
-     serializeJson(res,ResLine);
-     Serial.println(ResLine);
-    }
+    Serial.println(createMessage(
+        executeCommand(filigreeFile.readStringUntil('\n')), PARAM_COUNT));
   } else {
     EthernetClient client = server.available();
     if (Serial.available()) {
-      String line = Serial.readStringUntil('\n');
-      deserializeJson(req, line);
-      if (executeCommand("")) {
-        String ResLine="";
-       // serializeJson(res, Serial);
-        //Serial.println();
-       serializeJson(res, ResLine);
-       Serial.println(ResLine);
-       
-      }
-    } else if (client.connected() &&
-               client.available() > 0) {
-      String line = client.readStringUntil('\n');
-      deserializeJson(req, line);
-      if (executeCommand("")) {
-        String Line ="";
-        serializeJson(res,Line);
-        Serial.println(Line);
-        client.println(Line);
-       // serializeJson(res, client);
-       // client.println();
-      }
+      Serial.println(createMessage(executeCommand(Serial.readStringUntil('\n')),
+                                   PARAM_COUNT));
+    } else if (client.connected() && client.available()) {
+      Serial.println(createMessage(executeCommand(client.readStringUntil('\n')),
+                                   PARAM_COUNT));
     } else {
       // Do nothing
     }
   }
 }
 
-bool executeCommand(const String &line) {
-  if (req.size() == 0)
-    return true;
+int *executeCommand(const String &line) {
+  int req[] = {0, 0, 0, 0, 0};
+  static int res[] = {0, 0, 0, 0, 0};
+  if (!parseMessage(line, req, PARAM_COUNT)) {
+    return res;
+  }
+  res[PARAM_REQUEST_ID] = req[PARAM_REQUEST_ID];
 
-  res.clear();
-  res["id"] = req["id"];
-
-  if (req["method"][PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
+  if (req[PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
     slave.println(line);
     while (!slave.available()) {
       Log("Waiting for slave...");
-      
     }
 
     String line = slave.readStringUntil('\n');
-    deserializeJson(res, line);
-    if (res.containsKey("error")) {
+    parseMessage(line, res, 5);
+    if (res[PARAM_RESPONSE_ERROR] != 0) {
       isRunning = false;
-      return false;
     }
-    return true;
+    return res;
   }
 
-  Commands command;
-  int cmd;
-  if (req.containsKey("method")) {
-    cmd = req["method"][PARAM_COMMAND_ID].as<int>();
-  }
-
+  int cmd = req[PARAM_COMMAND_ID];
   switch (cmd) {
   case static_cast<int>(Commands::MotorsInitialize):
-    res["result"] = motors_initalize();
+    res[PARAM_RESPONSE_RESULT] = motors_initalize();
     break;
 
   case static_cast<int>(Commands::MotorsCount):
-    res["result"] = motor_count();
+    res[PARAM_RESPONSE_RESULT] = motor_count();
     break;
 
   case static_cast<int>(Commands::MotorStatus):
-    res["result"] = motor_status(req["method"][PARAM_MOTOR_ID]);
+    res[PARAM_RESPONSE_RESULT] = motor_status(req[PARAM_MOTOR_ID]);
     break;
 
   case static_cast<int>(Commands::MotorAlerts):
-    res["result"] = motor_alerts(req["method"][PARAM_MOTOR_ID]);
+    res[PARAM_RESPONSE_RESULT] = motor_alerts(req[PARAM_MOTOR_ID]);
     break;
 
   case static_cast<int>(Commands::MotorAbsoluteMove):
@@ -417,29 +434,28 @@ bool executeCommand(const String &line) {
         (cmd == static_cast<int>(Commands::MotorRelativeMove))
             ? MotorDriver::MOVE_TARGET_REL_END_POSN
             : MotorDriver::MOVE_TARGET_ABSOLUTE;
-    res["result"] =
-        motor_move(req["method"][PARAM_MOTOR_ID],
-                   req["method"][PARAM_COMMAND_PARAM],
+    res[PARAM_RESPONSE_RESULT] =
+        motor_move(res[PARAM_MOTOR_ID],
+                   static_cast<float>(res[PARAM_COMMAND_PARAM]) / 1000.0,
                    moveTarget, isCut);
   } break;
 
   case static_cast<int>(Commands::MotorReset): {
-    res["result"] = motor_reset(req["method"][PARAM_MOTOR_ID]);
+    res[PARAM_RESPONSE_RESULT] = motor_reset(res[PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorGetType): {
-    res["result"] = motor_get_type(req["method"][PARAM_MOTOR_ID]);
+    res[PARAM_RESPONSE_RESULT] = motor_get_type(res[PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorSetType): {
-    res["result"] =
-        motor_set_type(static_cast<int>(req["method"][PARAM_MOTOR_ID]),
-                       static_cast<int>(req["method"][PARAM_COMMAND_PARAM]));
+    res[PARAM_RESPONSE_RESULT] =
+        motor_set_type(res[PARAM_MOTOR_ID], res[PARAM_COMMAND_PARAM]);
   } break;
 
   default:
-    res["error"] = "Invalid Motor Command";
+    res[PARAM_RESPONSE_ERROR] = -1;
   }
 
-  return true;
+  return res;
 }
