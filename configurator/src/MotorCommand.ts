@@ -26,7 +26,11 @@ export enum MessageParam {
 }
 
 export function serializeCommand(cmd: number[]) {
-  return cmd.join(",") + "\n";
+  return (
+    [...cmd, ...Array(MessageParam.PARAM_COUNT).fill(0)]
+      .slice(0, MessageParam.PARAM_COUNT)
+      .join(",") + "\n"
+  );
 }
 
 export function deserializeCommand(line: string) {
@@ -58,12 +62,12 @@ export type MotorCommand = Array<number>;
 
 #filigree-version: 1
 #command-count: 7
-7,0,0,0
-7,0,1,0
-7,0,2,0
-7,0,3,0
-7,1,0,0
-7,1,1,0
-7,1,2,0
-7,1,3,0
+0,7,0,0,0
+1,7,0,1,0
+2,7,0,2,0
+3,7,0,3,0
+4,7,1,0,0
+5,7,1,1,0
+6,7,1,2,0
+7,7,1,3,0
 */
