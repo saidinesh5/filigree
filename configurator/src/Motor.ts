@@ -25,25 +25,27 @@ export class Motor {
 
   async moveTo(value: number) {
     this.angle = value;
-    console.info(`Motor ${this.displayIndex}: Move to : ${value}`);
-    await this.runCommand([
-      MotorCommands.MotorAbsoluteMove,
-      this.controller.id,
-      this.id,
-      this.angle,
-    ]);
+
+    console.info(`Motor ${this.displayIndex}: Move to : ${value} ...`);
+    let result = await this.runCommand(
+      [
+        MotorCommands.MotorAbsoluteMove,
+        this.controller.id,
+        this.id,
+        this.angle,
+      ],
+      this.controller.motorMoveRequestTimeout,
+    );
+    console.info("done: ", result);
   }
 
-  // deprecated
   async moveBy(value: number) {
     this.angle += value;
     console.log(`Motor ${this.displayIndex}: Move by : ${value}`);
-    await this.runCommand([
-      MotorCommands.MotorAbsoluteMove,
-      this.controller.id,
-      this.id,
-      value,
-    ]);
+    await this.runCommand(
+      [MotorCommands.MotorRelativeMove, this.controller.id, this.id, value],
+      this.controller.motorMoveRequestTimeout,
+    );
   }
 
   async undo() {
@@ -54,19 +56,19 @@ export class Motor {
   async reset() {
     this.angle = 0;
     this.lastSavedAngle = 0;
-    await this.runCommand([
-      MotorCommands.MotorReset,
-      this.controller.id,
-      this.id,
-    ]);
+    await this.runCommand(
+      [MotorCommands.MotorReset, this.controller.id, this.id],
+      this.controller.motorMoveRequestTimeout,
+    );
   }
 
   get hasChanged() {
     return this.angle != this.lastSavedAngle;
   }
 
-  async runCommand(command: MotorCommand): Promise<boolean> {
-    return false;
+  async runCommand(command: MotorCommand, timeout: number): Promise<boolean> {
+    const result = await this.controller.sendRequest(command, timeout);
+    return !result["error"];
   }
 
   getCommand(): MotorCommand {

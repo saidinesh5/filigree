@@ -23,27 +23,42 @@ import { Motor, MotorType } from "./Motor";
 import { MotorCommand, MotorCommands } from "./MotorCommand";
 import { saveAs } from "file-saver";
 import { observer } from "mobx-react-lite";
-import { computed } from "mobx";
+import { autorun } from "mobx";
+import debounce from "underscore/modules/debounce.js";
 
-const App = observer(() => {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const App = () => {
   const motorControllers = [new MotorController(0), new MotorController(1)];
-  const [motors, setMotors] = useState<Motor[]>([
-    new Motor(motorControllers[0], 0, MotorType.Extruder, 1),
-    new Motor(motorControllers[0], 1, MotorType.Default, 2),
-    new Motor(motorControllers[0], 2, MotorType.Default, 3),
-    new Motor(motorControllers[0], 3, MotorType.Default, 4),
-    new Motor(motorControllers[1], 0, MotorType.Default, 5),
-    new Motor(motorControllers[1], 1, MotorType.Default, 6),
-    new Motor(motorControllers[1], 2, MotorType.Default, 7),
-    new Motor(motorControllers[1], 3, MotorType.Default, 8),
-  ]);
+  const [motors, setMotors] = useState<Motor[]>([]);
+
+  const updateMotors = () => {
+    let newMotors: Motor[] = [];
+
+    for (let motorController of motorControllers) {
+      if (motorController.isConnected) {
+        for (let i = 0; i < motorController.motorCount; i++) {
+          newMotors.push(
+            new Motor(motorController, i, MotorType.Extruder, newMotors.length),
+          );
+        }
+      }
+    }
+
+    console.log("updateMotors");
+    debounce(() => setMotors(newMotors), 10);
+  };
+
+  autorun(updateMotors);
 
   navigator.serial?.addEventListener("connect", (event: Event) => {
     // this event occurs every time a new serial device
     // connects via USB:
     console.log(event.target, "connected");
   });
-  navigator.serial.addEventListener("disconnect", (event: Event) => {
+  navigator.serial?.addEventListener("disconnect", (event: Event) => {
     // this event occurs every time a new serial device
     // disconnects via USB:
     // for (let m of motorControllers) {
@@ -65,10 +80,6 @@ const App = observer(() => {
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
 
   const ref = useRef<HTMLDivElement | null>(null);
-
-  const areMotorsUnchanged = computed(() => {
-    return motors.find((motor: Motor) => motor.hasChanged) == undefined;
-  });
 
   const addCommandSequenceEntries = () => {
     let newCommands = [...commandSequence];
@@ -95,28 +106,40 @@ const App = observer(() => {
     }
   };
 
-  const startPlayback = async () => {
+  const sequencePlaybackLoop = async () => {
+    if (isSequencePlaying) {
+      let i = currentSequenceIndex;
+      for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
+        console.log("isSequenceplaying", isSequencePlaying);
+        if (!isSequencePlaying) {
+          break;
+        }
+        const controllerId = cmd[1];
+        try {
+          await motorControllers[controllerId].sendRequest(cmd, 1000);
+        } catch (err) {
+          console.error(err);
+        }
+        setCurrentSequenceIndex(i);
+        i++;
+      }
+
+      setIsSequencePlaying(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isSequencePlaying) sequencePlaybackLoop();
+  }, [isSequencePlaying]);
+
+  const startPlayback = () => {
     console.log("start playback");
     setIsSequencePlaying(true);
-    startPlaybackLoop();
   };
 
   const pausePlayback = () => {
     console.log("pause playback");
     setIsSequencePlaying(false);
-  };
-
-  const startPlaybackLoop = async () => {
-    console.log(commandSequence.slice(currentSequenceIndex), isSequencePlaying);
-    for await (const command of commandSequence.slice(currentSequenceIndex)) {
-      if (isSequencePlaying) {
-        await new Promise((r) => setTimeout(r, 500));
-        setCurrentSequenceIndex(
-          (currentSequenceIndex + 1) % commandSequence.length,
-        );
-        console.log(command);
-      }
-    }
   };
 
   const downloadCommandSequence = () => {
@@ -150,10 +173,22 @@ const App = observer(() => {
           }
         }}
       >
-        {`Controller ${controller.id + 1}: ${controller.isConnected ? "Connected" : "Disconnected"}`}
+        {`Controller ${controller.id + 1}: ${
+          controller.isConnected ? "Connected" : "Disconnected"
+        }`}
       </Button>
     ),
   );
+
+  const AddCommandsButton = observer(({ motors }: { motors: Motor[] }) => (
+    <Button
+      isDisabled={motors.find((motor: Motor) => motor.hasChanged) == undefined}
+      isIconOnly
+      onClick={addCommandSequenceEntries}
+    >
+      <FontAwesomeIcon icon="circle-plus" />
+    </Button>
+  ));
 
   return (
     <div className="">
@@ -240,19 +275,13 @@ const App = observer(() => {
                 <FontAwesomeIcon icon="scissors" />
               </Button>
               {/* Add move command to the sequencer*/}
-              <Button
-                isDisabled={areMotorsUnchanged.get()}
-                isIconOnly
-                onClick={addCommandSequenceEntries}
-              >
-                <FontAwesomeIcon icon="circle-plus" />
-              </Button>
+              <AddCommandsButton motors={motors}></AddCommandsButton>
             </div>
           </CardBody>
         </Card>
       </div>
     </div>
   );
-});
+};
 
 export default App;
