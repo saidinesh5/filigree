@@ -20,11 +20,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SequencerList } from "./Sequencer";
 import { ViewportList } from "react-viewport-list";
 import { Motor, MotorType } from "./Motor";
-import { MotorCommand, MotorCommands } from "./MotorCommand";
+import { MotorCommand, MotorCommands, serializeCommands } from "./MotorCommand";
 import { saveAs } from "file-saver";
 import { observer } from "mobx-react-lite";
 import { autorun } from "mobx";
-import debounce from "underscore/modules/debounce.js";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,7 +31,12 @@ function sleep(ms: number) {
 
 const App = () => {
   const motorControllers = [new MotorController(0), new MotorController(1)];
-  const [motors, setMotors] = useState<Motor[]>([]);
+  const [motors, setMotors] = useState<Motor[]>([
+    new Motor(motorControllers[0], 0, MotorType.Default, 1),
+    new Motor(motorControllers[0], 1, MotorType.Default, 2),
+    new Motor(motorControllers[0], 2, MotorType.Default, 3),
+    new Motor(motorControllers[0], 3, MotorType.Default, 4),
+  ]);
 
   const updateMotors = () => {
     let newMotors: Motor[] = [];
@@ -48,7 +52,7 @@ const App = () => {
     }
 
     console.log("updateMotors");
-    debounce(() => setMotors(newMotors), 10);
+    // debounce(() => setMotors(newMotors), 10);
   };
 
   autorun(updateMotors);
@@ -143,20 +147,7 @@ const App = () => {
   };
 
   const downloadCommandSequence = () => {
-    let blob = new Blob(
-      [
-        [
-          "#filigree-version: 1",
-          `#command-count: ${commandSequence.length}`,
-          ...commandSequence.map((command, index) =>
-            JSON.stringify({ method: command.join(","), id: index }),
-          ),
-        ].join("\n"),
-      ],
-      { type: "text/plain;charset=utf-8" },
-    );
-
-    saveAs(blob, "filigree.txt");
+    saveAs(serializeCommands(commandSequence), "filigree.txt");
   };
 
   const MotorControllerButton = observer(

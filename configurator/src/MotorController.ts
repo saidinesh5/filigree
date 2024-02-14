@@ -1,7 +1,13 @@
 // Thanks to: https://github.com/tigoe/html-for-conndev/blob/main/webSerial/webserial.js
 
 import { makeAutoObservable } from "mobx";
-import { MotorCommand, MotorCommands } from "./MotorCommand";
+import {
+  MessageParam,
+  MotorCommand,
+  MotorCommands,
+  deserializeCommand,
+  serializeCommand,
+} from "./MotorCommand";
 
 export default class MotorController {
   public port?: SerialPort;
@@ -23,14 +29,13 @@ export default class MotorController {
   async startPollingBuffer() {
     this.bufferPollerTimer = setTimeout(async () => {
       const response = await this.readBufferLineTimeout(this.bufferReadTimeout);
-      // console.log("response", response, "buffer", this.buffer);
-      if (response && response["id"]) {
-        const id = response["id"];
+      if (response) {
+        const id = response[MessageParam.PARAM_REQUEST_ID];
         if (id in this.activeRequests) {
           this.activeRequests[id](response);
           delete this.activeRequests[id];
         } else {
-          console.error("dropping response:", JSON.stringify(response));
+          console.error("dropping response:", response);
         }
       }
 
@@ -111,11 +116,11 @@ export default class MotorController {
     this.stopPollingBuffer();
   }
 
-  async sendSerial(data: object) {
+  async sendSerial(data: number[]) {
     // console.log(JSON.stringify(data), this.port, this.port?.writable);
     if (this.port && this.port.writable) {
       const writer = this.port.writable.getWriter();
-      var output = new TextEncoder().encode(JSON.stringify(data));
+      var output = new TextEncoder().encode(serializeCommand(data));
       await writer.write(output).then();
       writer.releaseLock();
     }
@@ -136,11 +141,13 @@ export default class MotorController {
       if (value) {
         this.buffer += textDecoder.decode(value);
       }
-      const lineBreakIndex = this.buffer.indexOf("\r\n");
+      const lineBreakIndex = this.buffer.indexOf("\n");
       if (lineBreakIndex >= 0) {
-        // console.log('line: ', this.buffer.substring(0, lineBreakIndex).trim());
+        console.log("line: ", this.buffer.substring(0, lineBreakIndex).trim());
         try {
-          result = JSON.parse(this.buffer.substring(0, lineBreakIndex).trim());
+          result = deserializeCommand(
+            this.buffer.substring(0, lineBreakIndex).trim(),
+          );
           this.buffer = this.buffer.substring(lineBreakIndex + 1);
         } catch (err) {}
         break;
@@ -158,9 +165,9 @@ export default class MotorController {
   async sendRequest(
     command: MotorCommand,
     timeout: number,
-  ): Promise<Promise<any>> {
+  ): Promise<Promise<number[]>> {
     const requestId = this.requestId++;
-    await this.sendSerial({ id: requestId, method: command });
+    await this.sendSerial([requestId, ...command]);
 
     const self = this;
     return new Promise((resolve, reject) => {

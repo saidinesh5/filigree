@@ -14,6 +14,38 @@ export enum MotorCommands {
   MotorSetType = 9,
 }
 
+export enum MessageParam {
+  PARAM_REQUEST_ID = 0,
+  PARAM_COMMAND_ID = 1,
+  PARAM_CONTROLLER_ID = 2,
+  PARAM_MOTOR_ID = 3,
+  PARAM_COMMAND_PARAM = 4,
+  PARAM_RESPONSE_ERROR = 1,
+  PARAM_RESPONSE_RESULT = 2,
+  PARAM_COUNT = 5,
+}
+
+export function serializeCommand(cmd: number[]) {
+  return cmd.join(",") + "\n";
+}
+
+export function deserializeCommand(line: string) {
+  return line.split(",").map((x) => parseInt(x.trim()));
+}
+
+export function serializeCommands(cmds: MotorCommand[]) {
+  return new Blob(
+    [
+      [
+        "#filigree-version: 1\n",
+        `#command-count: ${cmds.length}\n`,
+        ...cmds.map((command, index) => serializeCommand([index, ...command])),
+      ].join(""),
+    ],
+    { type: "text/plain;charset=utf-8" },
+  );
+}
+
 export type MotorCommand = Array<number>;
 // Motor command format:
 // [MotorCommandId, ControllerId, MotorId, CommandParam]

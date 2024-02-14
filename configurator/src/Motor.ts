@@ -32,7 +32,7 @@ export class Motor {
         MotorCommands.MotorAbsoluteMove,
         this.controller.id,
         this.id,
-        this.angle,
+        Math.floor(this.angle * 1000),
       ],
       this.controller.motorMoveRequestTimeout,
     );
@@ -43,7 +43,12 @@ export class Motor {
     this.angle += value;
     console.log(`Motor ${this.displayIndex}: Move by : ${value}`);
     await this.runCommand(
-      [MotorCommands.MotorRelativeMove, this.controller.id, this.id, value],
+      [
+        MotorCommands.MotorRelativeMove,
+        this.controller.id,
+        this.id,
+        Math.floor(value * 1000),
+      ],
       this.controller.motorMoveRequestTimeout,
     );
   }
