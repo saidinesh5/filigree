@@ -87,18 +87,55 @@ EthernetClient slave;
 
 #define start_pause_button_pin DI6
 
+enum class MotorType {
+  Default = 0,
+  Extruder = 1,
+  CutterBottom = 2,
+  CutterTop = 3,
+  Disable = 4
+};
+
+union PersistentSettings {
+  struct {
+    int32_t isInitialized;
+    int32_t velocityLimit;
+    int32_t accelerationLimit;
+    int32_t cuttingVelocityLimit;
+    int32_t cuttingAccelerationLimit;
+    int32_t resolution;
+    int8_t motorType[4];
+  };
+  uint8_t data[7 * 4];
+};
+
+PersistentSettings SETTINGS;
+
+void save_persistent_settings() {
+  NvmMgr.BlockWrite(NvmManager::NVM_LOC_USER_START, sizeof(PersistentSettings),
+                    SETTINGS.data);
+}
+
+void load_persistent_settings() {
+  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(PersistentSettings),
+                   SETTINGS.data);
+  if (SETTINGS.isInitialized != 0 && SETTINGS.isInitialized != 1) {
+    SETTINGS.isInitialized = 1;
+    SETTINGS.velocityLimit = 5000;      // 10,000 steps per sec
+    SETTINGS.accelerationLimit = 10000; // 100000  // pulses per sec^2
+    SETTINGS.resolution = 1600;
+    SETTINGS.cuttingVelocityLimit = 6000;        // 60000
+    SETTINGS.cuttingAccelerationLimit = 2000000; // 2000000
+    SETTINGS.motorType[0] = static_cast<int>(MotorType::Default);
+    SETTINGS.motorType[1] = static_cast<int>(MotorType::Default);
+    SETTINGS.motorType[2] = static_cast<int>(MotorType::Default);
+    SETTINGS.motorType[3] = static_cast<int>(MotorType::Default);
+  }
+}
+
 ////////////////////////////
 // Motor stuff
 MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
-
-const long homing_velocity_limit = 5000; // 10000
-uint32_t velocity_Limit = 5000;          // 10,000 steps per sec
-uint32_t acceleration_Limit = 10000;     // 100000  // pulses per sec^2
-uint32_t resolution = 1600;       // 1600         // number of steps for 1
-                                  // revolution
-uint32_t cutting_velocity = 6000; // 60000
-uint32_t cutting_acceleration = 2000000; // 2000000
 
 //////////////////////////////////////////////////////////////////
 enum class Commands {
@@ -112,30 +149,6 @@ enum class Commands {
   MotorReset = 7,
   MotorGetType = 8,
   MotorSetType = 9
-
-};
-
-/*
-json rpc format:
-         0         1          2        3
-"method": [command , cntrl_id, motor_id ,parameter]
-*/
-typedef enum StorageVariables {
-  VelocityLimit = 0,
-  AccelerationLimit = 1,
-  CuttingVelocity = 2,
-  CuttingAcceleration = 3,
-  Motor1Type = 4,
-  Motor2Type = 5,
-  Motor3Type = 6,
-  Motor4Type = 7
-};
-enum class MotorType {
-  Default = 0,
-  Extruder = 1,
-  CutterBottom = 2,
-  CutterTop = 3,
-  Disable = 4
 };
 
 File filigreeFile;
@@ -166,16 +179,16 @@ uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
   }
 
   if (is_cutting) {
-    motor->VelMax(cutting_velocity);
-    motor->AccelMax(cutting_acceleration);
+    motor->VelMax(SETTINGS.cuttingVelocityLimit);
+    motor->AccelMax(SETTINGS.cuttingAccelerationLimit);
   } else {
-    motor->VelMax(velocity_Limit);
-    motor->AccelMax(acceleration_Limit);
+    motor->VelMax(SETTINGS.velocityLimit);
+    motor->AccelMax(SETTINGS.accelerationLimit);
   }
 
   Log("Moving motors at particular velocity and position");
 
-  motor->Move(angle * resolution / 360.0, mode);
+  motor->Move(angle * SETTINGS.resolution / 360.0, mode);
 
   while ((!motor->StepsComplete() ||
           motor->HlfbState() != MotorDriver::HLFB_ASSERTED) &&
@@ -206,9 +219,8 @@ uint32_t motor_reset(int motor_id) {
                                                // bipolar PWM
   motor->HlfbCarrier(MotorDriver::HLFB_CARRIER_482_HZ); // sets the HLFB carrier
                                                         // frequency to 482 Hz
-  motor->VelMax(velocity_Limit);
-  motor->AccelMax(
-      acceleration_Limit); // sets the max acceleration for each move
+  motor->VelMax(SETTINGS.velocityLimit);
+  motor->AccelMax(SETTINGS.accelerationLimit);
   motor->EnableRequest(true);
   Log("Motor Enabled, Waiting for HLFB...");
   // Waits for HLFB to assert (waits for homing to complete if applicable)
@@ -240,65 +252,15 @@ uint32_t motors_initalize() {
   }
 }
 
-uint32_t set_param(StorageVariables StrVar, uint32_t paramValue) {
-
-  uint8_t Storage[8]; // it should be  uint32_t for reading 4 bytes  data at
-                      // once
-  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
-  Storage[static_cast<uint32_t>(StrVar)] = paramValue;
-  NvmMgr.BlockWrite(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
-}
-
-uint32_t get_param(StorageVariables StrVar) {
-
-  uint8_t Storage[8]; // it should be  uint32_t for reading 4 bytes  data at
-                      // once
-  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
-  return Storage[static_cast<uint32_t>(StrVar)];
-}
-
-void init_param() {
-
-  uint8_t Storage[8]; // it should be  uint32_t for reading 4 bytes  data at
-                      // once
-  NvmMgr.BlockRead(NvmManager::NVM_LOC_USER_START, sizeof(Storage), Storage);
-  StorageVariables StrVar;
-
-  velocity_Limit = Storage[static_cast<uint32_t>(
-      StorageVariables::VelocityLimit)]; // 10,000 steps per sec
-  acceleration_Limit =
-      Storage[static_cast<uint32_t>(StorageVariables::AccelerationLimit)];
-  cutting_velocity = Storage[static_cast<uint32_t>(
-      StorageVariables::CuttingVelocity)]; // 60000
-  cutting_acceleration = Storage[static_cast<uint32_t>(
-      StorageVariables::CuttingAcceleration)]; // 2000000
-}
-
-union motor_type {
-  int data;
-  char motor[4];
-};
-
 uint32_t motor_get_type(int motor_id) {
-  motor_type get_mtr;
-  get_mtr.data = NvmMgr.Int32(NvmManager::NVM_LOC_USER_START);
-  if (get_mtr.data == 255) {
-    return 255;
-  } else {
-    return static_cast<uint32_t>(get_mtr.motor[motor_id]);
-  }
+  return static_cast<uint32_t>(SETTINGS.motorType[motor_id]);
 }
 
 uint32_t motor_set_type(int motor_id, int Type) {
-  motor_type set_mtr;
-
-  // Read the existing motor_type data from NVM
-  set_mtr.data = NvmMgr.Int32(NvmManager::NVM_LOC_USER_START);
-
   // Update the specific motor type
   if (motor_id >= 0 && motor_id < 4) {
-    set_mtr.motor[motor_id] = static_cast<char>(Type);
-    NvmMgr.Int32(NvmManager::NVM_LOC_USER_START, set_mtr.data);
+    SETTINGS.motorType[motor_id] = static_cast<char>(Type);
+    save_persistent_settings();
   }
 }
 /////////////////////////////////////////////////////////////////////////
@@ -306,9 +268,7 @@ uint32_t motor_set_type(int motor_id, int Type) {
 void start_pause_button_callback() { isRunning = !isRunning; }
 
 void setup() {
-  // init_param();
-  delay(10);
-  //  put your setup code here, to run once:
+  load_persistent_settings();
   Serial.begin(9600);
   uint32_t timeout = 5000;
   uint32_t startTime = millis();
