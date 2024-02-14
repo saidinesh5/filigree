@@ -29,7 +29,7 @@ export default class MotorController {
   async startPollingBuffer() {
     this.bufferPollerTimer = setTimeout(async () => {
       const response = await this.readBufferLineTimeout(this.bufferReadTimeout);
-      if (response) {
+      if (response.length > 0) {
         const id = response[MessageParam.PARAM_REQUEST_ID];
         if (id in this.activeRequests) {
           this.activeRequests[id](response);
@@ -126,7 +126,7 @@ export default class MotorController {
     }
   }
 
-  async readBufferLineTimeout(timeout: number): Promise<any> {
+  async readBufferLineTimeout(timeout: number): Promise<number[]> {
     const textDecoder = new TextDecoder();
     let reader = this.port?.readable?.getReader();
 
@@ -134,7 +134,7 @@ export default class MotorController {
       reader?.cancel();
     }, timeout);
 
-    let result = {};
+    let result: number[] = [];
 
     while (reader) {
       const { value, done } = await reader.read();

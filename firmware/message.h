@@ -65,7 +65,7 @@ bool parseMessage(const String &line, int *message, int messageSize) {
   }
 
   if (paramIndex == messageSize - 1) {
-    message[paramIndex] = value;
+    message[paramIndex] = (isNegative ? -1 : 1) * value;
     return true;
   } else {
     return false;

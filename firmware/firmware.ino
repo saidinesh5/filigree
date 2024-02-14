@@ -1,4 +1,4 @@
-// #define SIMULATOR
+#define SIMULATOR
 #include <Ethernet.h>
 #include <SD.h>
 #include <stdint.h>
@@ -130,7 +130,7 @@ void loop() {
       Serial.println(createMessage(executeCommand(Serial.readStringUntil('\n')),
                                    PARAM_COUNT));
     } else if (client.connected() && client.available()) {
-      Serial.println(createMessage(executeCommand(client.readStringUntil('\n')),
+      client.println(createMessage(executeCommand(client.readStringUntil('\n')),
                                    PARAM_COUNT));
     } else {
       // Do nothing
@@ -187,22 +187,22 @@ int *executeCommand(const String &line) {
             ? MotorDriver::MOVE_TARGET_REL_END_POSN
             : MotorDriver::MOVE_TARGET_ABSOLUTE;
     res[PARAM_RESPONSE_RESULT] =
-        motor_move(res[PARAM_MOTOR_ID],
-                   static_cast<float>(res[PARAM_COMMAND_PARAM]) / 1000.0,
+        motor_move(req[PARAM_MOTOR_ID],
+                   static_cast<float>(req[PARAM_COMMAND_PARAM]) / 1000.0,
                    moveTarget, isCut);
   } break;
 
   case static_cast<int>(Commands::MotorReset): {
-    res[PARAM_RESPONSE_RESULT] = motor_reset(res[PARAM_MOTOR_ID]);
+    res[PARAM_RESPONSE_RESULT] = motor_reset(req[PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorGetType): {
-    res[PARAM_RESPONSE_RESULT] = motor_get_type(res[PARAM_MOTOR_ID]);
+    res[PARAM_RESPONSE_RESULT] = motor_get_type(req[PARAM_MOTOR_ID]);
   } break;
 
   case static_cast<int>(Commands::MotorSetType): {
     res[PARAM_RESPONSE_RESULT] =
-        motor_set_type(res[PARAM_MOTOR_ID], res[PARAM_COMMAND_PARAM]);
+        motor_set_type(req[PARAM_MOTOR_ID], req[PARAM_COMMAND_PARAM]);
   } break;
 
   default:
