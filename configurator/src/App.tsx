@@ -25,10 +25,6 @@ import { saveAs } from "file-saver";
 import { observer } from "mobx-react-lite";
 import { autorun } from "mobx";
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 const App = () => {
   const motorControllers = [new MotorController(0), new MotorController(1)];
   const [motors, setMotors] = useState<Motor[]>([
@@ -36,6 +32,10 @@ const App = () => {
     new Motor(motorControllers[0], 1, MotorType.Default, 2),
     new Motor(motorControllers[0], 2, MotorType.Default, 3),
     new Motor(motorControllers[0], 3, MotorType.Default, 4),
+    new Motor(motorControllers[1], 0, MotorType.Default, 5),
+    new Motor(motorControllers[1], 1, MotorType.Default, 6),
+    new Motor(motorControllers[1], 2, MotorType.Default, 7),
+    new Motor(motorControllers[1], 3, MotorType.Default, 8),
   ]);
 
   const updateMotors = () => {

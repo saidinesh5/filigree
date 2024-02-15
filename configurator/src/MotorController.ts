@@ -9,6 +9,10 @@ import {
   serializeCommand,
 } from "./MotorCommand";
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export default class MotorController {
   public port?: SerialPort;
   public isConnected: boolean = false;
@@ -56,6 +60,9 @@ export default class MotorController {
       if (!this.port.writable) await this.port.open({ baudRate: 9600 });
       this.isConnected = this.port.writable ? true : false;
       this.startPollingBuffer();
+
+      await sleep(this.statusRequestTimeout / 2);
+      await sleep(this.statusRequestTimeout / 2);
 
       try {
         console.log(
@@ -122,6 +129,7 @@ export default class MotorController {
       const writer = this.port.writable.getWriter();
       var output = new TextEncoder().encode(serializeCommand(data));
       await writer.write(output).then();
+      console.log("Sent: ", serializeCommand(data));
       writer.releaseLock();
     }
   }
