@@ -1,4 +1,4 @@
-#define SIMULATOR
+//#define SIMULATOR
 #include <Ethernet.h>
 #include <SD.h>
 #include <stdint.h>
@@ -75,6 +75,7 @@ void start_pause_button_callback() { isRunning = !isRunning; }
 
 void setup() {
   load_persistent_settings(&SETTINGS);
+  motor_setup();
   Serial.begin(9600);
   uint32_t timeout = 5000;
   uint32_t startTime = millis();

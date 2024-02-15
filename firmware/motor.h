@@ -40,6 +40,9 @@ void motor_setup() {
                                          // and direction mode
 }
 
+
+
+
 uint32_t motor_alerts(int motor_id) { return motors[motor_id]->AlertReg().reg; }
 
 uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
