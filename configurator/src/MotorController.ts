@@ -186,7 +186,7 @@ export default class MotorController {
   async sendRequest(
     command: MotorCommand,
     timeout: number,
-  ): Promise<Promise<number[]>> {
+  ): Promise<Promise<number>> {
     const requestId = this.requestId++;
     await this.sendSerial([requestId, ...command]);
 

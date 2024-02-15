@@ -71,9 +71,14 @@ export class Motor {
     return this.angle != this.lastSavedAngle;
   }
 
-  async runCommand(command: MotorCommand, timeout: number): Promise<boolean> {
-    const result = await this.controller.sendRequest(command, timeout);
-    return !result["error"];
+  async runCommand(command: MotorCommand, timeout: number): Promise<number> {
+    try {
+      const result = await this.controller.sendRequest(command, timeout);
+      return result;
+    } catch (err) {
+      console.error(`Error executing ${command}:`, err);
+      return -1;
+    }
   }
 
   getCommand(): MotorCommand {
