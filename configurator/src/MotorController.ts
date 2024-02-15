@@ -13,13 +13,18 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+interface RequestTracker {
+  resolver: (value: any) => void;
+  rejecter: (value: any) => void;
+}
+
 export default class MotorController {
   public port?: SerialPort;
   public isConnected: boolean = false;
   public motorCount: number = 4;
   private requestId: number = 0;
 
-  private activeRequests: { [requestID: number]: (value: any) => void } = {};
+  private activeRequests: { [requestID: number]: RequestTracker } = {};
   public statusRequestTimeout: number = 3000;
   public motorMoveRequestTimeout: number = 5000;
   private buffer: string = "";
@@ -36,7 +41,15 @@ export default class MotorController {
       if (response.length > 0) {
         const id = response[MessageParam.PARAM_REQUEST_ID];
         if (id in this.activeRequests) {
-          this.activeRequests[id](response);
+          if (response[MessageParam.PARAM_RESPONSE_ERROR]) {
+            this.activeRequests[id].resolver(
+              response[MessageParam.PARAM_RESPONSE_ERROR],
+            );
+          } else {
+            this.activeRequests[id].resolver(
+              response[MessageParam.PARAM_RESPONSE_RESULT],
+            );
+          }
           delete this.activeRequests[id];
         } else {
           console.error("dropping response:", response);
@@ -179,7 +192,10 @@ export default class MotorController {
 
     const self = this;
     return new Promise((resolve, reject) => {
-      self.activeRequests[requestId] = resolve;
+      self.activeRequests[requestId] = {
+        resolver: resolve,
+        rejecter: reject,
+      };
       setTimeout(() => {
         if (self.activeRequests[requestId]) {
           delete self.activeRequests[requestId];
