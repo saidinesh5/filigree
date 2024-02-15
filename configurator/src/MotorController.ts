@@ -57,8 +57,8 @@ export default class MotorController {
           "motorCount",
           await this.sendRequest(
             [MotorCommands.MotorsCount, 0],
-            this.statusRequestTimeout,
-          ).then(),
+            this.statusRequestTimeout
+          ).then()
         );
       } catch (err) {
         console.error(err);
@@ -68,8 +68,8 @@ export default class MotorController {
           "motorCount",
           await this.sendRequest(
             [MotorCommands.MotorsCount, 0],
-            this.statusRequestTimeout,
-          ).then(),
+            this.statusRequestTimeout
+          ).then()
         );
       } catch (err) {
         console.error(err);
@@ -78,8 +78,8 @@ export default class MotorController {
         "motors intialize",
         await this.sendRequest(
           [MotorCommands.MotorsInitialize, 0],
-          this.motorMoveRequestTimeout,
-        ).then(),
+          this.motorMoveRequestTimeout
+        ).then()
       );
 
       try {
@@ -87,8 +87,8 @@ export default class MotorController {
           "motorCount",
           await this.sendRequest(
             [MotorCommands.MotorsCount, 0],
-            this.statusRequestTimeout,
-          ).then(),
+            this.statusRequestTimeout
+          ).then()
         );
       } catch (err) {
         console.error(err);
@@ -124,6 +124,7 @@ export default class MotorController {
   async readBufferLineTimeout(timeout: number): Promise<any> {
     const textDecoder = new TextDecoder();
     let reader = this.port?.readable?.getReader();
+    // console.log(reader);
 
     const timer = setTimeout(() => {
       reader?.cancel();
@@ -158,12 +159,31 @@ export default class MotorController {
   async sendRequest(
     command: MotorCommand,
     timeout: number,
-  ): Promise<Promise<any>> {
+    signal?: AbortSignal // Optional parameter to keep backward compatibility
+  ): Promise<any> {
     const requestId = this.requestId++;
     await this.sendSerial({ id: requestId, method: command });
 
     const self = this;
     return new Promise((resolve, reject) => {
+      // Check if the request is aborted before even starting the timeout
+      if (signal?.aborted) {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      }
+
+      const onAbort = () => {
+        // Clean up to avoid memory leaks
+        if (self.activeRequests[requestId]) {
+          delete self.activeRequests[requestId];
+        }
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      };
+
+      // Add event listener for the abort signal
+      if (signal) {
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+
       self.activeRequests[requestId] = resolve;
       setTimeout(() => {
         if (self.activeRequests[requestId]) {
@@ -171,8 +191,28 @@ export default class MotorController {
           reject("Request timed out!");
         }
       }, timeout);
+
+      // Remove the abort event listener when the promise settles
+      const cleanup = () => {
+        if (signal) {
+          signal.removeEventListener("abort", onAbort);
+        }
+      };
+
+      // Attach cleanup to both resolve and reject to ensure it's called
+      self.activeRequests[requestId] = (response) => {
+        cleanup();
+        resolve(response);
+      };
+      // Modify the timeout logic to include cleanup
+      setTimeout(() => {
+        if (self.activeRequests[requestId]) {
+          delete self.activeRequests[requestId];
+          cleanup();
+          reject("Request timed out!");
+        }
+      }, timeout);
     });
   }
 }
-
 // TODO: Handle BOM

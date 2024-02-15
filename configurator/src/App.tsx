@@ -1,30 +1,30 @@
-import { useEffect, useRef, useState } from "react";
 import {
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
-  Link,
   Button,
   Card,
   CardBody,
   CardHeader,
   Divider,
+  Link,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
 } from "@nextui-org/react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 import MotorController from "./MotorController";
 import MotorControllerView from "./MotorControllerView";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { SequencerList } from "./Sequencer";
+import { saveAs } from "file-saver";
+import { autorun } from "mobx";
+import { observer } from "mobx-react-lite";
 import { ViewportList } from "react-viewport-list";
+import { debounce } from "underscore";
 import { Motor, MotorType } from "./Motor";
 import { MotorCommand, MotorCommands } from "./MotorCommand";
-import { saveAs } from "file-saver";
-import { observer } from "mobx-react-lite";
-import { autorun } from "mobx";
-import debounce from "underscore/modules/debounce.js";
+import { SequencerList } from "./Sequencer";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -47,8 +47,16 @@ const App = () => {
       }
     }
 
-    console.log("updateMotors");
-    debounce(() => setMotors(newMotors), 10);
+    console.log("updateMotors", newMotors);
+
+    const debouncedUpdateMotors = debounce(() => {
+      let newMotors: Motor[] = [];
+    }, 10);
+    debouncedUpdateMotors()
+    // setMotors(newMotors)
+    // Then call  where needed
+
+    // Then use  you need to call it
   };
 
   autorun(updateMotors);
@@ -106,41 +114,72 @@ const App = () => {
     }
   };
 
-  const sequencePlaybackLoop = async () => {
-    if (isSequencePlaying) {
-      let i = currentSequenceIndex;
-      for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
-        console.log("isSequenceplaying", isSequencePlaying);
-        if (!isSequencePlaying) {
-          break;
-        }
-        const controllerId = cmd[1];
-        try {
-          await motorControllers[controllerId].sendRequest(cmd, 1000);
-        } catch (err) {
-          console.error(err);
-        }
-        setCurrentSequenceIndex(i);
-        i++;
-      }
 
-      setIsSequencePlaying(false);
-    }
-  };
 
-  useEffect(() => {
-    if (isSequencePlaying) sequencePlaybackLoop();
-  }, [isSequencePlaying]);
+
+
+
+
+
+
+
+
 
   const startPlayback = () => {
     console.log("start playback");
     setIsSequencePlaying(true);
   };
 
+
+
   const pausePlayback = () => {
     console.log("pause playback");
     setIsSequencePlaying(false);
   };
+
+
+
+  // Correctly typed useRef for AbortController
+  const abortCtrl = useRef<AbortController | null>(null);
+
+  const sequencePlaybackLoop = async (abortSignal: AbortSignal) => {
+    let i = currentSequenceIndex;
+    while (i < commandSequence.length && !abortSignal.aborted) {
+      const cmd = commandSequence[i];
+      if (abortSignal.aborted) {
+        console.log("Playback was aborted.");
+        break;
+      }
+      try {
+        await motorControllers[cmd[1]].sendRequest(cmd, 1000, abortSignal);
+        await sleep(1000); // Wait for 1 second before moving to the next command
+      } catch (err) {
+        console.error(err);
+      }
+      if (!abortSignal.aborted) {
+        setCurrentSequenceIndex(i + 1); // Move to the next command
+        i++;
+      }
+    }
+    if (!abortSignal.aborted) {
+      setIsSequencePlaying(false); // Automatically stop playback when sequence ends
+    }
+  };
+
+
+  const togglePlayback = () => {
+    if (isSequencePlaying) {
+      // Abort the current sequence
+      abortCtrl.current?.abort();
+    } else {
+      // Optionally reset the sequence index to 0 if you want to start from the beginning
+      // setCurrentSequenceIndex(0);
+      abortCtrl.current = new AbortController();
+      sequencePlaybackLoop(abortCtrl.current.signal).catch(console.error);
+    }
+    setIsSequencePlaying(!isSequencePlaying);
+  };
+
 
   const downloadCommandSequence = () => {
     let blob = new Blob(
@@ -156,7 +195,13 @@ const App = () => {
       { type: "text/plain;charset=utf-8" },
     );
 
-    saveAs(blob, "filigree.txt");
+    // Get the current date and time
+    const now = new Date();
+    // Format date and time as 'YYYY-MM-DD_HH-MM-SS' (You can adjust the format as needed)
+    const datetime = now.toISOString().replace(/:/g, '-').replace(/\..+/, '').replace('T', '_');
+
+    // Append the date and time to the filename
+    saveAs(blob, `filigree_${datetime}.txt`);
   };
 
   const MotorControllerButton = observer(
@@ -173,9 +218,8 @@ const App = () => {
           }
         }}
       >
-        {`Controller ${controller.id + 1}: ${
-          controller.isConnected ? "Connected" : "Disconnected"
-        }`}
+        {`Controller ${controller.id + 1}: ${controller.isConnected ? "Connected" : "Disconnected"
+          }`}
       </Button>
     ),
   );
@@ -238,10 +282,11 @@ const App = () => {
             <Button
               isIconOnly
               className="object-right"
-              onClick={isSequencePlaying ? pausePlayback : startPlayback}
+              onClick={togglePlayback}
             >
               <FontAwesomeIcon icon={isSequencePlaying ? "pause" : "play"} />
             </Button>
+
             <Button
               isIconOnly
               className="object-right"
@@ -250,6 +295,7 @@ const App = () => {
               <FontAwesomeIcon icon="download" />
             </Button>
           </CardHeader>
+
           <CardBody>
             <SequencerList
               motorControllers={motorControllers}
