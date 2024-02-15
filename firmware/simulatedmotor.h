@@ -30,7 +30,7 @@ uint32_t motor_alerts(int motor_id) { return 0; }
 
 uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
                     bool is_cutting = false) {
-  delay(angle * 10);
+  delay(200);
   return 0;
 }
 
