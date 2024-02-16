@@ -70,10 +70,6 @@ const App = () => {
   const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
     [MotorCommands.MotorsInitialize, 0],
     [MotorCommands.MotorsInitialize, 1],
-    [MotorCommands.MotorAbsoluteMove, 0, 0, 20],
-    [MotorCommands.MotorAbsoluteMove, 0, 1, 20],
-    [MotorCommands.MotorAbsoluteMove, 0, 2, 20],
-    [MotorCommands.MotorAbsoluteMove, 0, 3, 20],
   ]);
   const [isSequencePlaying, setIsSequencePlaying] = useState(false);
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
