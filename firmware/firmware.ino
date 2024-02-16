@@ -1,4 +1,4 @@
-//#define SIMULATOR
+// #define SIMULATOR
 #include <Ethernet.h>
 #include <SD.h>
 #include <stdint.h>
