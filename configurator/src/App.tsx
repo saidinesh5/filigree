@@ -26,22 +26,16 @@ import { observer } from "mobx-react-lite";
 import { autorun } from "mobx";
 
 const App = () => {
-  const motorControllers = [new MotorController(0), new MotorController(1)];
-  const [motors, setMotors] = useState<Motor[]>([
-    new Motor(motorControllers[0], 0, MotorType.Default, 1),
-    new Motor(motorControllers[0], 1, MotorType.Default, 2),
-    new Motor(motorControllers[0], 2, MotorType.Default, 3),
-    new Motor(motorControllers[0], 3, MotorType.Default, 4),
-    new Motor(motorControllers[1], 0, MotorType.Default, 5),
-    new Motor(motorControllers[1], 1, MotorType.Default, 6),
-    new Motor(motorControllers[1], 2, MotorType.Default, 7),
-    new Motor(motorControllers[1], 3, MotorType.Default, 8),
+  const motorControllers = useRef([
+    new MotorController(0),
+    new MotorController(1),
   ]);
+  const [motors, setMotors] = useState<Motor[]>([]);
 
   const updateMotors = () => {
     let newMotors: Motor[] = [];
 
-    for (let motorController of motorControllers) {
+    for (let motorController of motorControllers.current) {
       if (motorController.isConnected) {
         for (let i = 0; i < motorController.motorCount; i++) {
           newMotors.push(
@@ -51,8 +45,9 @@ const App = () => {
       }
     }
 
-    console.log("updateMotors");
-    // debounce(() => setMotors(newMotors), 10);
+    if (newMotors.length != motors.length) {
+      setTimeout(() => setMotors(newMotors), 1000);
+    }
   };
 
   autorun(updateMotors);
@@ -120,7 +115,7 @@ const App = () => {
         }
         const controllerId = cmd[1];
         try {
-          await motorControllers[controllerId].sendRequest(cmd, 1000);
+          await motorControllers.current[controllerId].sendRequest(cmd, 1000);
         } catch (err) {
           console.error(err);
         }
@@ -189,7 +184,7 @@ const App = () => {
           <p className="font-bold text-inherit">Silver Filigree Configurator</p>
         </NavbarBrand>
         <NavbarContent className="hidden sm:flex gap-4" justify="center">
-          {motorControllers.map((controller, index) => (
+          {motorControllers.current.map((controller, index) => (
             <NavbarItem key={index}>
               <MotorControllerButton
                 controller={controller}
@@ -243,7 +238,7 @@ const App = () => {
           </CardHeader>
           <CardBody>
             <SequencerList
-              motorControllers={motorControllers}
+              motorControllers={motorControllers.current}
               commandSequence={commandSequence}
               removeCommandSequenceEntry={removeCommandSequenceEntry}
               currentSequenceIndex={currentSequenceIndex}

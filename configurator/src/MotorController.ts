@@ -71,53 +71,21 @@ export default class MotorController {
     try {
       this.port = await navigator.serial.requestPort();
       if (!this.port.writable) await this.port.open({ baudRate: 9600 });
-      this.isConnected = this.port.writable ? true : false;
       this.startPollingBuffer();
 
-      await sleep(this.statusRequestTimeout / 2);
-      await sleep(this.statusRequestTimeout / 2);
+      // TODO: See why the first couple of requests always time out
+      try {
+        this.motorCount = await this.sendRequest(
+          [MotorCommands.MotorsCount, this.id],
+          this.statusRequestTimeout,
+        ).then();
 
-      try {
-        console.log(
-          "motorCount",
-          await this.sendRequest(
-            [MotorCommands.MotorsCount, 0],
-            this.statusRequestTimeout,
-          ).then(),
-        );
+        console.log("Motor Count: ", this.motorCount);
       } catch (err) {
         console.error(err);
       }
-      try {
-        console.log(
-          "motorCount",
-          await this.sendRequest(
-            [MotorCommands.MotorsCount, 0],
-            this.statusRequestTimeout,
-          ).then(),
-        );
-      } catch (err) {
-        console.error(err);
-      }
-      console.log(
-        "motors intialize",
-        await this.sendRequest(
-          [MotorCommands.MotorsInitialize, 0],
-          this.motorMoveRequestTimeout,
-        ).then(),
-      );
 
-      try {
-        console.log(
-          "motorCount",
-          await this.sendRequest(
-            [MotorCommands.MotorsCount, 0],
-            this.statusRequestTimeout,
-          ).then(),
-        );
-      } catch (err) {
-        console.error(err);
-      }
+      this.isConnected = this.port.writable ? true : false;
     } catch (err) {
       console.error("There was an error opening the serial port:", err);
     }
@@ -126,9 +94,11 @@ export default class MotorController {
   async closePort() {
     if (this.port) {
       await this.stopPollingBuffer();
+      await sleep(this.bufferReadTimeout);
       await this.port.readable?.cancel();
       await this.port.writable?.abort();
       await this.port.close();
+      this.motorCount = 0;
       this.port = undefined;
     }
 
