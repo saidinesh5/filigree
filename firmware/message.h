@@ -26,8 +26,24 @@ enum class Commands {
   MotorCutMove = 6,
   MotorReset = 7,
   MotorGetType = 8,
-  MotorSetType = 9
+  MotorSetType = 9,
+  MotorSetVelocity=10,
+  MotorGetVelocity=11,
+  MotorSetAcceleration=12,
+  MotorGetAcceleration=13,
+  MotorSetCuttingAcceleration=14,
+  MotorGetCuttingAcceration=15,
+  MotorSetResolution=16,
+  MotorGetResolution=17
+  
 };
+
+/*
+TODO: 
+Implement get and set for velocilty etc etc
+
+
+*/
 
 enum MessageParam {
   PARAM_REQUEST_ID = 0,

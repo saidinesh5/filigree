@@ -29,14 +29,14 @@ uint32_t motor_set_type(int motor_id, int Type) {
   }
 }
 
-uint8_t motor_init_flag = false;
+uint8_t isMotorInitialized = false;
 uint32_t motors_initalize() {
-  if (motor_init_flag) {
+  if (isMotorInitialized) {
     return false;
   }
 
   else {
-    motor_init_flag = true;
+    isMotorInitialized = true;
     for (int motor_id = 0; motor_id < motor_count(); motor_id++) {
       motor_reset(motor_id);
     }
@@ -47,6 +47,7 @@ uint32_t motors_initalize() {
 // Ethernet stuff
 // Configure with a manually assigned IP address
 /*
+
 Slave acts as a server
 Master acts as a client
 */
@@ -120,11 +121,13 @@ void loop() {
     }
 
     String line = filigreeFile.readStringUntil('\n');
+    Serial.print("line=");
+    Serial.println(line);
+    Serial.println(line.length());
     if (line.length() == 0 || line[0] == '#') {
       return;
     }
-    Serial.println(createMessage(
-        executeCommand(filigreeFile.readStringUntil('\n')), PARAM_COUNT));
+    Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
   } else {
     EthernetClient client = server.available();
     if (Serial.available()) {
@@ -205,6 +208,8 @@ int *executeCommand(const String &line) {
     res[PARAM_RESPONSE_RESULT] =
         motor_set_type(req[PARAM_MOTOR_ID], req[PARAM_COMMAND_PARAM]);
   } break;
+
+  
 
   default:
     res[PARAM_RESPONSE_ERROR] = -1;
