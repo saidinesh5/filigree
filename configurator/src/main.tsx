@@ -1,9 +1,9 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
-import "./index.css";
-import "@fortawesome/fontawesome-svg-core/styles.css";
-import { library } from "@fortawesome/fontawesome-svg-core";
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
+import '@fortawesome/fontawesome-svg-core/styles.css'
+import { library } from '@fortawesome/fontawesome-svg-core'
 import {
   faArrowRotateLeft,
   faCircleMinus,
@@ -18,7 +18,7 @@ import {
   faScissors,
   faStop,
   faTape,
-} from "@fortawesome/free-solid-svg-icons";
+} from '@fortawesome/free-solid-svg-icons'
 
 library.add(
   faArrowRotateLeft,
@@ -33,15 +33,15 @@ library.add(
   faPlus,
   faScissors,
   faStop,
-  faTape,
-);
+  faTape
+)
 
-import { NextUIProvider } from "@nextui-org/react";
+import { NextUIProvider } from '@nextui-org/react'
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <NextUIProvider>
       <App />
     </NextUIProvider>
-  </React.StrictMode>,
-);
+  </React.StrictMode>
+)

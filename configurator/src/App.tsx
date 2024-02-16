@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react'
 import {
   Navbar,
   NavbarBrand,
@@ -10,54 +10,54 @@ import {
   CardBody,
   CardHeader,
   Divider,
-} from "@nextui-org/react";
-import "./App.css";
+} from '@nextui-org/react'
+import './App.css'
 
-import MotorController from "./MotorController";
-import MotorControllerView from "./MotorControllerView";
+import MotorController from './MotorController'
+import MotorControllerView from './MotorControllerView'
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { SequencerList } from "./Sequencer";
-import { ViewportList } from "react-viewport-list";
-import { Motor, MotorType } from "./Motor";
-import { MotorCommand, MotorCommands, serializeCommands } from "./MotorCommand";
-import { saveAs } from "file-saver";
-import { observer } from "mobx-react-lite";
-import { autorun } from "mobx";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { SequencerList } from './Sequencer'
+import { ViewportList } from 'react-viewport-list'
+import { Motor, MotorType } from './Motor'
+import { MotorCommand, MotorCommands, serializeCommands } from './MotorCommand'
+import { saveAs } from 'file-saver'
+import { observer } from 'mobx-react-lite'
+import { autorun } from 'mobx'
 
 const App = () => {
   const motorControllers = useRef([
     new MotorController(0),
     new MotorController(1),
-  ]);
-  const [motors, setMotors] = useState<Motor[]>([]);
+  ])
+  const [motors, setMotors] = useState<Motor[]>([])
 
   const updateMotors = () => {
-    let newMotors: Motor[] = [];
+    let newMotors: Motor[] = []
 
     for (let motorController of motorControllers.current) {
       if (motorController.isConnected) {
         for (let i = 0; i < motorController.motorCount; i++) {
           newMotors.push(
-            new Motor(motorController, i, MotorType.Extruder, newMotors.length),
-          );
+            new Motor(motorController, i, MotorType.Extruder, newMotors.length)
+          )
         }
       }
     }
 
     if (newMotors.length != motors.length) {
-      setTimeout(() => setMotors(newMotors), 1000);
+      setTimeout(() => setMotors(newMotors), 1000)
     }
-  };
+  }
 
-  autorun(updateMotors);
+  autorun(updateMotors)
 
-  navigator.serial?.addEventListener("connect", (event: Event) => {
+  navigator.serial?.addEventListener('connect', (event: Event) => {
     // this event occurs every time a new serial device
     // connects via USB:
-    console.log(event.target, "connected");
-  });
-  navigator.serial?.addEventListener("disconnect", (event: Event) => {
+    console.log(event.target, 'connected')
+  })
+  navigator.serial?.addEventListener('disconnect', (event: Event) => {
     // this event occurs every time a new serial device
     // disconnects via USB:
     // for (let m of motorControllers) {
@@ -65,102 +65,102 @@ const App = () => {
     //     console.log(event.target, "is no longer available");
     //   }
     // }
-    console.log(event.target, "disconnected");
-  });
+    console.log(event.target, 'disconnected')
+  })
   const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
     [MotorCommands.MotorsInitialize, 0],
     [MotorCommands.MotorsInitialize, 1],
-  ]);
-  const [isSequencePlaying, setIsSequencePlaying] = useState(false);
-  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
+  ])
+  const [isSequencePlaying, setIsSequencePlaying] = useState(false)
+  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0)
 
-  const ref = useRef<HTMLDivElement | null>(null);
+  const ref = useRef<HTMLDivElement | null>(null)
 
   const addCommandSequenceEntries = () => {
-    let newCommands = [...commandSequence];
+    let newCommands = [...commandSequence]
     for (let motor of motors) {
       if (motor.hasChanged) {
-        newCommands.push(motor.getCommand());
-        motor.save();
+        newCommands.push(motor.getCommand())
+        motor.save()
       }
     }
     if (newCommands.length > commandSequence.length) {
-      setCommandSequence(newCommands);
-      setCurrentSequenceIndex(newCommands.length - 1);
+      setCommandSequence(newCommands)
+      setCurrentSequenceIndex(newCommands.length - 1)
     }
-  };
+  }
 
   const removeCommandSequenceEntry = (id: number) => {
-    if (id >= commandSequence.length) return;
+    if (id >= commandSequence.length) return
 
-    let newSequence = [...commandSequence];
-    newSequence.splice(id, 1);
-    setCommandSequence(newSequence);
+    let newSequence = [...commandSequence]
+    newSequence.splice(id, 1)
+    setCommandSequence(newSequence)
     if (currentSequenceIndex == commandSequence.length - 1) {
-      setCurrentSequenceIndex(currentSequenceIndex - 1);
+      setCurrentSequenceIndex(currentSequenceIndex - 1)
     }
-  };
+  }
 
   const sequencePlaybackLoop = async () => {
     if (isSequencePlaying) {
-      let i = currentSequenceIndex;
+      let i = currentSequenceIndex
       for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
-        console.log("isSequenceplaying", isSequencePlaying);
+        console.log('isSequenceplaying', isSequencePlaying)
         if (!isSequencePlaying) {
-          break;
+          break
         }
-        const controllerId = cmd[1];
+        const controllerId = cmd[1]
         try {
-          await motorControllers.current[controllerId].sendRequest(cmd, 1000);
+          await motorControllers.current[controllerId].sendRequest(cmd, 1000)
         } catch (err) {
-          console.error(err);
+          console.error(err)
         }
-        setCurrentSequenceIndex(i);
-        i++;
+        setCurrentSequenceIndex(i)
+        i++
       }
 
-      setIsSequencePlaying(false);
+      setIsSequencePlaying(false)
     }
-  };
+  }
 
   useEffect(() => {
-    if (isSequencePlaying) sequencePlaybackLoop();
-  }, [isSequencePlaying]);
+    if (isSequencePlaying) sequencePlaybackLoop()
+  }, [isSequencePlaying])
 
   const startPlayback = () => {
-    console.log("start playback");
-    setIsSequencePlaying(true);
-  };
+    console.log('start playback')
+    setIsSequencePlaying(true)
+  }
 
   const pausePlayback = () => {
-    console.log("pause playback");
-    setIsSequencePlaying(false);
-  };
+    console.log('pause playback')
+    setIsSequencePlaying(false)
+  }
 
   const downloadCommandSequence = () => {
-    saveAs(serializeCommands(commandSequence), "filigree.txt");
-  };
+    saveAs(serializeCommands(commandSequence), 'filigree.txt')
+  }
 
   const MotorControllerButton = observer(
     ({ controller }: { controller: MotorController }) => (
       <Button
         as={Link}
-        color={controller.isConnected ? "success" : "danger"}
+        color={controller.isConnected ? 'success' : 'danger'}
         variant="flat"
         onClick={(_) => {
           if (controller.isConnected) {
-            controller.closePort();
+            controller.closePort()
           } else {
-            controller.openPort();
+            controller.openPort()
           }
         }}
       >
         {`Controller ${controller.id + 1}: ${
-          controller.isConnected ? "Connected" : "Disconnected"
+          controller.isConnected ? 'Connected' : 'Disconnected'
         }`}
       </Button>
-    ),
-  );
+    )
+  )
 
   const AddCommandsButton = observer(({ motors }: { motors: Motor[] }) => (
     <Button
@@ -170,7 +170,7 @@ const App = () => {
     >
       <FontAwesomeIcon icon="circle-plus" />
     </Button>
-  ));
+  ))
 
   return (
     <div className="">
@@ -205,7 +205,7 @@ const App = () => {
                     {index != motors.length - 1 ? (
                       <Divider className="my-2" />
                     ) : (
-                      ""
+                      ''
                     )}
                   </div>
                 )}
@@ -222,7 +222,7 @@ const App = () => {
               className="object-right"
               onClick={isSequencePlaying ? pausePlayback : startPlayback}
             >
-              <FontAwesomeIcon icon={isSequencePlaying ? "pause" : "play"} />
+              <FontAwesomeIcon icon={isSequencePlaying ? 'pause' : 'play'} />
             </Button>
             <Button
               isIconOnly
@@ -239,7 +239,7 @@ const App = () => {
               removeCommandSequenceEntry={removeCommandSequenceEntry}
               currentSequenceIndex={currentSequenceIndex}
               onCurrentSequenceIndexChanged={(index) => {
-                setCurrentSequenceIndex(index);
+                setCurrentSequenceIndex(index)
               }}
             />
             <Divider className="my-3" />
@@ -263,7 +263,7 @@ const App = () => {
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App

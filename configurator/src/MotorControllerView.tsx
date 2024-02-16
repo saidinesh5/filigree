@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { Slider, Button, Divider } from "@nextui-org/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Motor, MotorType } from "./Motor";
-import { observer } from "mobx-react-lite";
+import React, { useEffect, useState } from 'react'
+import { Slider, Button, Divider } from '@nextui-org/react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { Motor, MotorType } from './Motor'
+import { observer } from 'mobx-react-lite'
 
 const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
-  const [localAngle, setLocalAngle] = useState<number>(motor.angle);
+  const [localAngle, setLocalAngle] = useState<number>(motor.angle)
   const onAngleChange = (angle: number) => {
     if (motor.motorType == MotorType.Extruder) {
-      motor.moveTo(angle);
+      motor.moveTo(angle)
     } else {
-      motor.moveTo(Math.min(360, Math.max(0, angle)));
+      motor.moveTo(Math.min(360, Math.max(0, angle)))
     }
-  };
+  }
 
-  useEffect(() => setLocalAngle(motor.angle), [motor.angle]);
+  useEffect(() => setLocalAngle(motor.angle), [motor.angle])
 
   return (
     <div className="flex items-center space-x-3 text-small">
@@ -73,7 +73,7 @@ const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
         <FontAwesomeIcon icon="arrow-rotate-left" />
       </Button>
     </div>
-  );
-});
+  )
+})
 
-export default MotorControllerView;
+export default MotorControllerView

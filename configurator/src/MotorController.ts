@@ -1,178 +1,178 @@
 // Thanks to: https://github.com/tigoe/html-for-conndev/blob/main/webSerial/webserial.js
 
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable } from 'mobx'
 import {
   MessageParam,
   MotorCommand,
   MotorCommands,
   deserializeCommand,
   serializeCommand,
-} from "./MotorCommand";
+} from './MotorCommand'
 
 async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 interface RequestTracker {
-  resolver: (value: any) => void;
-  rejecter: (value: any) => void;
+  resolver: (value: any) => void
+  rejecter: (value: any) => void
 }
 
 export default class MotorController {
-  public port?: SerialPort;
-  public isConnected: boolean = false;
-  public motorCount: number = 4;
-  private requestId: number = 0;
+  public port?: SerialPort
+  public isConnected: boolean = false
+  public motorCount: number = 4
+  private requestId: number = 0
 
-  private activeRequests: { [requestID: number]: RequestTracker } = {};
-  public statusRequestTimeout: number = 3000;
-  public motorMoveRequestTimeout: number = 5000;
-  private buffer: string = "";
-  private bufferReadTimeout: number = 10;
-  private bufferPollerTimer: number | undefined;
+  private activeRequests: { [requestID: number]: RequestTracker } = {}
+  public statusRequestTimeout: number = 3000
+  public motorMoveRequestTimeout: number = 5000
+  private buffer: string = ''
+  private bufferReadTimeout: number = 10
+  private bufferPollerTimer: number | undefined
 
   constructor(public id: number) {
-    makeAutoObservable(this);
+    makeAutoObservable(this)
   }
 
   async startPollingBuffer() {
     this.bufferPollerTimer = setTimeout(async () => {
-      const response = await this.readBufferLineTimeout(this.bufferReadTimeout);
+      const response = await this.readBufferLineTimeout(this.bufferReadTimeout)
       if (response.length > 0) {
-        const id = response[MessageParam.PARAM_REQUEST_ID];
+        const id = response[MessageParam.PARAM_REQUEST_ID]
         if (id in this.activeRequests) {
           if (response[MessageParam.PARAM_RESPONSE_ERROR]) {
             this.activeRequests[id].resolver(
-              response[MessageParam.PARAM_RESPONSE_ERROR],
-            );
+              response[MessageParam.PARAM_RESPONSE_ERROR]
+            )
           } else {
             this.activeRequests[id].resolver(
-              response[MessageParam.PARAM_RESPONSE_RESULT],
-            );
+              response[MessageParam.PARAM_RESPONSE_RESULT]
+            )
           }
-          delete this.activeRequests[id];
+          delete this.activeRequests[id]
         } else {
-          console.error("dropping response:", response);
+          console.error('dropping response:', response)
         }
       }
 
-      this.startPollingBuffer();
-    }, this.bufferReadTimeout);
+      this.startPollingBuffer()
+    }, this.bufferReadTimeout)
   }
 
   async stopPollingBuffer() {
     if (this.bufferPollerTimer) {
-      clearTimeout(this.bufferPollerTimer);
-      this.bufferPollerTimer = undefined;
+      clearTimeout(this.bufferPollerTimer)
+      this.bufferPollerTimer = undefined
     }
   }
 
   async openPort() {
     try {
-      this.port = await navigator.serial.requestPort();
-      if (!this.port.writable) await this.port.open({ baudRate: 9600 });
-      this.startPollingBuffer();
+      this.port = await navigator.serial.requestPort()
+      if (!this.port.writable) await this.port.open({ baudRate: 9600 })
+      this.startPollingBuffer()
 
       // TODO: See why the first couple of requests always time out
       try {
         this.motorCount = await this.sendRequest(
           [MotorCommands.MotorsCount, this.id],
-          this.statusRequestTimeout,
-        ).then();
+          this.statusRequestTimeout
+        ).then()
 
-        console.log("Motor Count: ", this.motorCount);
+        console.log('Motor Count: ', this.motorCount)
       } catch (err) {
-        console.error(err);
+        console.error(err)
       }
 
-      this.isConnected = this.port.writable ? true : false;
+      this.isConnected = this.port.writable ? true : false
     } catch (err) {
-      console.error("There was an error opening the serial port:", err);
+      console.error('There was an error opening the serial port:', err)
     }
   }
 
   async closePort() {
     if (this.port) {
-      await this.stopPollingBuffer();
-      await sleep(this.bufferReadTimeout);
-      await this.port.readable?.cancel();
-      await this.port.writable?.abort();
-      await this.port.close();
-      this.motorCount = 0;
-      this.port = undefined;
+      await this.stopPollingBuffer()
+      await sleep(this.bufferReadTimeout)
+      await this.port.readable?.cancel()
+      await this.port.writable?.abort()
+      await this.port.close()
+      this.motorCount = 0
+      this.port = undefined
     }
 
-    this.isConnected = false;
-    this.stopPollingBuffer();
+    this.isConnected = false
+    this.stopPollingBuffer()
   }
 
   async sendSerial(data: number[]) {
     // console.log(JSON.stringify(data), this.port, this.port?.writable);
     if (this.port && this.port.writable) {
-      const writer = this.port.writable.getWriter();
-      var output = new TextEncoder().encode(serializeCommand(data));
-      await writer.write(output).then();
-      console.log("Sent: ", serializeCommand(data));
-      writer.releaseLock();
+      const writer = this.port.writable.getWriter()
+      var output = new TextEncoder().encode(serializeCommand(data))
+      await writer.write(output).then()
+      console.log('Sent: ', serializeCommand(data))
+      writer.releaseLock()
     }
   }
 
   async readBufferLineTimeout(timeout: number): Promise<number[]> {
-    const textDecoder = new TextDecoder();
-    let reader = this.port?.readable?.getReader();
+    const textDecoder = new TextDecoder()
+    let reader = this.port?.readable?.getReader()
 
     const timer = setTimeout(() => {
-      reader?.cancel();
-    }, timeout);
+      reader?.cancel()
+    }, timeout)
 
-    let result: number[] = [];
+    let result: number[] = []
 
     while (reader) {
-      const { value, done } = await reader.read();
+      const { value, done } = await reader.read()
       if (value) {
-        this.buffer += textDecoder.decode(value);
+        this.buffer += textDecoder.decode(value)
       }
-      const lineBreakIndex = this.buffer.indexOf("\n");
+      const lineBreakIndex = this.buffer.indexOf('\n')
       if (lineBreakIndex >= 0) {
-        console.log("line: ", this.buffer.substring(0, lineBreakIndex).trim());
+        console.log('line: ', this.buffer.substring(0, lineBreakIndex).trim())
         try {
           result = deserializeCommand(
-            this.buffer.substring(0, lineBreakIndex).trim(),
-          );
-          this.buffer = this.buffer.substring(lineBreakIndex + 1);
+            this.buffer.substring(0, lineBreakIndex).trim()
+          )
+          this.buffer = this.buffer.substring(lineBreakIndex + 1)
         } catch (err) {}
-        break;
+        break
       }
       if (done) {
-        break;
+        break
       }
     }
 
-    reader?.releaseLock();
-    clearTimeout(timer);
-    return result;
+    reader?.releaseLock()
+    clearTimeout(timer)
+    return result
   }
 
   async sendRequest(
     command: MotorCommand,
-    timeout: number,
+    timeout: number
   ): Promise<Promise<number>> {
-    const requestId = this.requestId++;
-    await this.sendSerial([requestId, ...command]);
+    const requestId = this.requestId++
+    await this.sendSerial([requestId, ...command])
 
-    const self = this;
+    const self = this
     return new Promise((resolve, reject) => {
       self.activeRequests[requestId] = {
         resolver: resolve,
         rejecter: reject,
-      };
+      }
       setTimeout(() => {
         if (self.activeRequests[requestId]) {
-          delete self.activeRequests[requestId];
-          reject("Request timed out!");
+          delete self.activeRequests[requestId]
+          reject('Request timed out!')
         }
-      }, timeout);
-    });
+      }, timeout)
+    })
   }
 }
 

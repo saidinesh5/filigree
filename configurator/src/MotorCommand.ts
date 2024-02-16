@@ -29,28 +29,28 @@ export function serializeCommand(cmd: number[]) {
   return (
     [...cmd, ...Array(MessageParam.PARAM_COUNT).fill(0)]
       .slice(0, MessageParam.PARAM_COUNT)
-      .join(",") + "\n"
-  );
+      .join(',') + '\n'
+  )
 }
 
 export function deserializeCommand(line: string) {
-  return line.split(",").map((x) => parseInt(x.trim()));
+  return line.split(',').map((x) => parseInt(x.trim()))
 }
 
 export function serializeCommands(cmds: MotorCommand[]) {
   return new Blob(
     [
       [
-        "#filigree-version: 1\n",
+        '#filigree-version: 1\n',
         `#command-count: ${cmds.length}\n`,
         ...cmds.map((command, index) => serializeCommand([index, ...command])),
-      ].join(""),
+      ].join(''),
     ],
-    { type: "text/plain;charset=utf-8" },
-  );
+    { type: 'text/plain;charset=utf-8' }
+  )
 }
 
-export type MotorCommand = Array<number>;
+export type MotorCommand = Array<number>
 // Motor command format:
 // [MotorCommandId, ControllerId, MotorId, CommandParam]
 
