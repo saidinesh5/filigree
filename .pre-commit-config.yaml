@@ -27,6 +27,7 @@ repos:
     hooks:
       - id: prettier
         files: \.(js|ts|jsx|tsx|css|less|html|json|markdown|md|yaml|yml)$
+        args: [--config, .prettierrc]
 
   - repo: https://github.com/psf/black
     rev: 23.12.1
