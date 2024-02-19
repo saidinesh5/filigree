@@ -11,7 +11,7 @@ export enum MotorCommands {
   MotorCutMove = 6,
   MotorReset = 7,
   MotorGetType = 8,
-  MotorSetType = 9,
+  MotorSetType = 9
 }
 
 export enum MessageParam {
@@ -22,7 +22,7 @@ export enum MessageParam {
   PARAM_COMMAND_PARAM = 4,
   PARAM_RESPONSE_ERROR = 1,
   PARAM_RESPONSE_RESULT = 2,
-  PARAM_COUNT = 5,
+  PARAM_COUNT = 5
 }
 
 export function serializeCommand(cmd: number[]) {
@@ -43,8 +43,8 @@ export function serializeCommands(cmds: MotorCommand[]) {
       [
         '#filigree-version: 1\n',
         `#command-count: ${cmds.length}\n`,
-        ...cmds.map((command, index) => serializeCommand([index, ...command])),
-      ].join(''),
+        ...cmds.map((command, index) => serializeCommand([index, ...command]))
+      ].join('')
     ],
     { type: 'text/plain;charset=utf-8' }
   )

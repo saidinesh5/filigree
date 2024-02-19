@@ -56,7 +56,7 @@ export function SequencerList({
   commandSequence,
   removeCommandSequenceEntry,
   currentSequenceIndex,
-  onCurrentSequenceIndexChanged,
+  onCurrentSequenceIndexChanged
 }: {
   motorControllers: MotorController[]
   commandSequence: MotorCommand[]
@@ -69,7 +69,7 @@ export function SequencerList({
 
   useEffect(() => {
     listRef.current?.scrollToIndex({
-      index: currentSequenceIndex,
+      index: currentSequenceIndex
     })
   }, [currentSequenceIndex])
 

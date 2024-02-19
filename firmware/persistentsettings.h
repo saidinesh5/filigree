@@ -72,5 +72,3 @@ void load_persistent_settings(PersistentSettings *settings) {
     settings->motorType[3] = static_cast<uint8_t>(MotorType::Default);
   }
 }
-
-

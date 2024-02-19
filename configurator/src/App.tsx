@@ -9,7 +9,7 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Divider,
+  Divider
 } from '@nextui-org/react'
 import './App.css'
 
@@ -28,7 +28,7 @@ import { autorun } from 'mobx'
 const App = () => {
   const motorControllers = useRef([
     new MotorController(0),
-    new MotorController(1),
+    new MotorController(1)
   ])
   const [motors, setMotors] = useState<Motor[]>([])
 
@@ -69,7 +69,7 @@ const App = () => {
   })
   const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
     [MotorCommands.MotorsInitialize, 0],
-    [MotorCommands.MotorsInitialize, 1],
+    [MotorCommands.MotorsInitialize, 1]
   ])
   const [isSequencePlaying, setIsSequencePlaying] = useState(false)
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0)

@@ -7,7 +7,7 @@ export enum MotorType {
   Extruder = 1,
   CutterBottom = 2,
   CutterTop = 3,
-  Disabled = 4,
+  Disabled = 4
 }
 
 export class Motor {
@@ -32,7 +32,7 @@ export class Motor {
         MotorCommands.MotorAbsoluteMove,
         this.controller.id,
         this.id,
-        Math.floor(this.angle * 1000),
+        Math.floor(this.angle * 1000)
       ],
       this.controller.motorMoveRequestTimeout
     )
@@ -47,7 +47,7 @@ export class Motor {
         MotorCommands.MotorRelativeMove,
         this.controller.id,
         this.id,
-        Math.floor(value * 1000),
+        Math.floor(value * 1000)
       ],
       this.controller.motorMoveRequestTimeout
     )
@@ -86,7 +86,7 @@ export class Motor {
       MotorCommands.MotorAbsoluteMove,
       this.controller.id,
       this.id,
-      this.angle,
+      this.angle
     ]
   }
 

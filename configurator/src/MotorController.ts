@@ -6,7 +6,7 @@ import {
   MotorCommand,
   MotorCommands,
   deserializeCommand,
-  serializeCommand,
+  serializeCommand
 } from './MotorCommand'
 
 async function sleep(ms: number): Promise<void> {
@@ -164,7 +164,7 @@ export default class MotorController {
     return new Promise((resolve, reject) => {
       self.activeRequests[requestId] = {
         resolver: resolve,
-        rejecter: reject,
+        rejecter: reject
       }
       setTimeout(() => {
         if (self.activeRequests[requestId]) {

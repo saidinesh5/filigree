@@ -209,8 +209,6 @@ int *executeCommand(const String &line) {
         motor_set_type(req[PARAM_MOTOR_ID], req[PARAM_COMMAND_PARAM]);
   } break;
 
-  
-
   default:
     res[PARAM_RESPONSE_ERROR] = -1;
   }

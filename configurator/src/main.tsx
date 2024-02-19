@@ -17,7 +17,7 @@ import {
   faPlus,
   faScissors,
   faStop,
-  faTape,
+  faTape
 } from '@fortawesome/free-solid-svg-icons'
 
 library.add(

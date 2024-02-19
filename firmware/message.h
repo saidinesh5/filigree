@@ -27,19 +27,19 @@ enum class Commands {
   MotorReset = 7,
   MotorGetType = 8,
   MotorSetType = 9,
-  MotorSetVelocity=10,
-  MotorGetVelocity=11,
-  MotorSetAcceleration=12,
-  MotorGetAcceleration=13,
-  MotorSetCuttingAcceleration=14,
-  MotorGetCuttingAcceration=15,
-  MotorSetResolution=16,
-  MotorGetResolution=17
-  
+  MotorSetVelocity = 10,
+  MotorGetVelocity = 11,
+  MotorSetAcceleration = 12,
+  MotorGetAcceleration = 13,
+  MotorSetCuttingAcceleration = 14,
+  MotorGetCuttingAcceration = 15,
+  MotorSetResolution = 16,
+  MotorGetResolution = 17
+
 };
 
 /*
-TODO: 
+TODO:
 Implement get and set for velocilty etc etc
 
 
