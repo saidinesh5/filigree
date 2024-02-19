@@ -54,8 +54,10 @@ export class Motor {
   }
 
   async undo() {
-    this.angle = this.lastSavedAngle
-    this.moveTo(this.angle)
+    if (this.angle != this.lastSavedAngle) {
+      this.angle = this.lastSavedAngle
+      this.moveTo(this.angle)
+    }
   }
 
   async reset() {

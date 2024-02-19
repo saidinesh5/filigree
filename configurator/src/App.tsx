@@ -181,6 +181,13 @@ const App = () => {
       }
     }
   }
+
+  const resetAll = async () => {
+    for (let motor of motors) {
+      await motor.undo()
+    }
+  }
+
   const MotorControllerButton = observer(
     ({ controller }: { controller: MotorController }) => (
       <Button
@@ -234,7 +241,9 @@ const App = () => {
         <Card className="leftpane max-w-xxl">
           <CardHeader className="flex">
             <h4 className="grow font-semibold">Motor Configuration</h4>
-            <Button className="object-right">Reset All</Button>
+            <Button className="object-right" onClick={resetAll}>
+              Reset All
+            </Button>
           </CardHeader>
           <CardBody>
             <div className="list" ref={ref}>
