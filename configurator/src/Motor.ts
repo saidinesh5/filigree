@@ -29,6 +29,7 @@ export class Motor {
     console.info(`Motor ${this.displayIndex}: Move to : ${value} ...`)
     let result = await this.runCommand(
       [
+        MotorController.nextRequestId(),
         MotorCommands.MotorAbsoluteMove,
         this.controller.id,
         this.id,
@@ -44,6 +45,7 @@ export class Motor {
     console.log(`Motor ${this.displayIndex}: Move by : ${value}`)
     await this.runCommand(
       [
+        MotorController.nextRequestId(),
         MotorCommands.MotorRelativeMove,
         this.controller.id,
         this.id,
@@ -64,7 +66,12 @@ export class Motor {
     this.angle = 0
     this.lastSavedAngle = 0
     await this.runCommand(
-      [MotorCommands.MotorReset, this.controller.id, this.id],
+      [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorReset,
+        this.controller.id,
+        this.id
+      ],
       this.controller.motorMoveRequestTimeout
     )
   }
@@ -85,6 +92,7 @@ export class Motor {
 
   getCommand(): MotorCommand {
     return [
+      MotorController.nextRequestId(),
       MotorCommands.MotorAbsoluteMove,
       this.controller.id,
       this.id,

@@ -43,7 +43,7 @@ export function serializeCommands(cmds: MotorCommand[]) {
       [
         '#filigree-version: 1\n',
         `#command-count: ${cmds.length}\n`,
-        ...cmds.map((command, index) => serializeCommand([index, ...command]))
+        ...cmds.map((x, i) => [i, ...x.slice(1)]).map(serializeCommand)
       ].join('')
     ],
     { type: 'text/plain;charset=utf-8' }

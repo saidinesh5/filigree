@@ -22,7 +22,7 @@ export default class MotorController {
   public port?: SerialPort
   public isConnected: boolean = false
   public motorCount: number = 4
-  private requestId: number = 0
+  private static requestId: number = 0
 
   private activeRequests: { [requestID: number]: RequestTracker } = {}
   public statusRequestTimeout: number = 3000
@@ -33,6 +33,10 @@ export default class MotorController {
 
   constructor(public id: number) {
     makeAutoObservable(this)
+  }
+
+  static nextRequestId() {
+    return MotorController.requestId++
   }
 
   async startPollingBuffer() {
@@ -157,8 +161,8 @@ export default class MotorController {
     command: MotorCommand,
     timeout: number
   ): Promise<Promise<number>> {
-    const requestId = this.requestId++
-    await this.sendSerial([requestId, ...command])
+    const requestId = command[MessageParam.PARAM_REQUEST_ID]
+    await this.sendSerial(command)
 
     const self = this
     return new Promise((resolve, reject) => {

@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react'
-import { MotorCommand, MotorCommands } from './MotorCommand'
+import { MessageParam, MotorCommand, MotorCommands } from './MotorCommand'
 
 import { useRef } from 'react'
 import { ViewportList, ViewportListRef } from 'react-viewport-list'
@@ -12,12 +12,12 @@ function motorDisplayIndex(
   motorControllers: MotorController[],
   command: MotorCommand
 ) {
-  const controllerId = command[2]
-  const motorId = command[3]
+  const controllerId = command[MessageParam.PARAM_CONTROLLER_ID]
+  const motorId = command[MessageParam.PARAM_MOTOR_ID]
   if (controllerId == 0) {
-    return motorId + 1
+    return motorId
   } else {
-    return motorControllers[controllerId - 1].motorCount + motorId + 1
+    return motorControllers[controllerId - 1].motorCount + motorId
   }
 }
 
@@ -25,9 +25,9 @@ function describe(
   motorControllers: MotorController[],
   command: MotorCommand
 ): string {
-  switch (command[0]) {
+  switch (command[MessageParam.PARAM_COMMAND_ID]) {
     case MotorCommands.MotorsInitialize:
-      return `Initialize Motors of Controller ${command[1] + 1}`
+      return `Initialize Motors of Controller ${command[MessageParam.PARAM_CONTROLLER_ID] + 1}`
     case MotorCommands.MotorsCount:
       return `Get Motor Count`
     case MotorCommands.MotorStatus:
@@ -35,17 +35,17 @@ function describe(
     case MotorCommands.MotorAlerts:
       return `Get Motor Alerts ${motorDisplayIndex(motorControllers, command)}`
     case MotorCommands.MotorAbsoluteMove:
-      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to ${command[3]} deg`
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to ${command[MessageParam.PARAM_COMMAND_PARAM]} deg`
     case MotorCommands.MotorRelativeMove:
-      return `Move Motor ${motorDisplayIndex(motorControllers, command)} by ${command[3]} deg`
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} by ${command[MessageParam.PARAM_COMMAND_PARAM]} deg`
     case MotorCommands.MotorCutMove:
       return `Move Motor ${motorDisplayIndex(motorControllers, command)} to cut`
     case MotorCommands.MotorReset:
       return `Reset Motor ${motorDisplayIndex(motorControllers, command)}`
     case MotorCommands.MotorGetType:
-      return `Get Motor type for motor: ${command[1]}`
+      return `Get Motor type for motor: ${command[MessageParam.PARAM_REQUEST_ID]}`
     case MotorCommands.MotorSetType:
-      return `Set Motor type for motor: ${command[1]} to ${motorDisplayIndex(motorControllers, command)}`
+      return `Set Motor type for motor: ${command[MessageParam.PARAM_MOTOR_ID]} to ${motorDisplayIndex(motorControllers, command)}`
     default:
       return '???'
   }

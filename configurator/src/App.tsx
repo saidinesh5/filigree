@@ -68,8 +68,8 @@ const App = () => {
     console.log(event.target, 'disconnected')
   })
   const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([
-    [MotorCommands.MotorsInitialize, 0],
-    [MotorCommands.MotorsInitialize, 1]
+    [MotorController.nextRequestId(), MotorCommands.MotorsInitialize, 0],
+    [MotorController.nextRequestId(), MotorCommands.MotorsInitialize, 1]
   ])
   const [isSequencePlaying, setIsSequencePlaying] = useState(false)
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0)
