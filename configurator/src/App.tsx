@@ -20,7 +20,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { SequencerList } from './Sequencer'
 import { ViewportList } from 'react-viewport-list'
 import { Motor, MotorType } from './Motor'
-import { MotorCommand, MotorCommands, serializeCommands } from './MotorCommand'
+import {
+  MessageParam,
+  MotorCommand,
+  MotorCommands,
+  serializeCommands
+} from './MotorCommand'
 import { saveAs } from 'file-saver'
 import { observer } from 'mobx-react-lite'
 import { autorun } from 'mobx'
@@ -73,8 +78,9 @@ const App = () => {
   ])
   const [isSequencePlaying, setIsSequencePlaying] = useState(false)
   const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0)
+  const isSequencePlayingRef = useRef(false)
 
-  const ref = useRef<HTMLDivElement | null>(null)
+  const motorListRef = useRef<HTMLDivElement | null>(null)
 
   const addCommandSequenceEntries = () => {
     let newCommands = [...commandSequence]
@@ -102,14 +108,13 @@ const App = () => {
   }
 
   const sequencePlaybackLoop = async () => {
-    if (isSequencePlaying) {
+    if (isSequencePlayingRef.current) {
       let i = currentSequenceIndex
       for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
-        console.log('isSequenceplaying', isSequencePlaying)
-        if (!isSequencePlaying) {
+        if (!isSequencePlayingRef.current) {
           break
         }
-        const controllerId = cmd[1]
+        const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
         try {
           await motorControllers.current[controllerId].sendRequest(cmd, 1000)
         } catch (err) {
@@ -119,12 +124,16 @@ const App = () => {
         i++
       }
 
+      isSequencePlayingRef.current = false
       setIsSequencePlaying(false)
     }
   }
 
   useEffect(() => {
-    if (isSequencePlaying) sequencePlaybackLoop()
+    if (isSequencePlaying && !isSequencePlayingRef.current) {
+      isSequencePlayingRef.current = true
+      sequencePlaybackLoop()
+    }
   }, [isSequencePlaying])
 
   const startPlayback = () => {
@@ -134,7 +143,7 @@ const App = () => {
 
   const pausePlayback = () => {
     console.log('pause playback')
-    setIsSequencePlaying(false)
+    isSequencePlayingRef.current = false
   }
 
   const saveCommandSequence = () => {
@@ -246,8 +255,8 @@ const App = () => {
             </Button>
           </CardHeader>
           <CardBody>
-            <div className="list" ref={ref}>
-              <ViewportList viewportRef={ref} items={motors}>
+            <div className="list" ref={motorListRef}>
+              <ViewportList viewportRef={motorListRef} items={motors}>
                 {(motor, index) => (
                   <div key={index}>
                     <MotorControllerView motor={motor} />
