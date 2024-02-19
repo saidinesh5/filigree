@@ -12,8 +12,8 @@ function motorDisplayIndex(
   motorControllers: MotorController[],
   command: MotorCommand
 ) {
-  const controllerId = command[1]
-  const motorId = command[2]
+  const controllerId = command[2]
+  const motorId = command[3]
   if (controllerId == 0) {
     return motorId + 1
   } else {

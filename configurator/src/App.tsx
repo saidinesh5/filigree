@@ -46,7 +46,7 @@ const App = () => {
     }
 
     if (newMotors.length != motors.length) {
-      setTimeout(() => setMotors(newMotors), 1000)
+      setTimeout(() => setMotors(newMotors), 10)
     }
   }
 
@@ -137,10 +137,50 @@ const App = () => {
     setIsSequencePlaying(false)
   }
 
-  const downloadCommandSequence = () => {
+  const saveCommandSequence = () => {
     saveAs(serializeCommands(commandSequence), 'filigree.txt')
   }
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const readFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      var fr = new FileReader()
+      fr.onload = () => {
+        resolve(fr.result as string)
+      }
+      fr.onerror = reject
+      fr.readAsText(file)
+    })
+  }
+
+  const loadCommandSequence = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { files } = event.target as HTMLInputElement
+    for await (let file of files ?? []) {
+      if (file.name == 'filigree.txt') {
+        try {
+          let txt = await readFile(file)
+          if (txt.indexOf('filigree-version') > 0) {
+            const commands = txt
+              .split('\n')
+              .filter((l) => l.length > 0 && l[0] != '#')
+              .map((x) =>
+                x
+                  .split(',')
+                  .filter((c) => c.length > 0)
+                  .map((x) => parseInt(x.trim()))
+              )
+            setCommandSequence(commands)
+            return
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+    }
+  }
   const MotorControllerButton = observer(
     ({ controller }: { controller: MotorController }) => (
       <Button
@@ -217,19 +257,34 @@ const App = () => {
         <Card className="rightpane max-w-xxl h-full">
           <CardHeader className="flex gap-1">
             <h4 className="grow font-semibold">Sequencer</h4>
+            <input
+              onChange={(event) => loadCommandSequence(event)}
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".txt"
+            />
+            <Button
+              isIconOnly
+              className="object-right"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <FontAwesomeIcon icon="folder-open" />
+            </Button>
+            <Button
+              isIconOnly
+              className="object-right"
+              onClick={saveCommandSequence}
+            >
+              <FontAwesomeIcon icon="floppy-disk" />
+            </Button>
+            <Divider orientation="vertical"></Divider>
             <Button
               isIconOnly
               className="object-right"
               onClick={isSequencePlaying ? pausePlayback : startPlayback}
             >
               <FontAwesomeIcon icon={isSequencePlaying ? 'pause' : 'play'} />
-            </Button>
-            <Button
-              isIconOnly
-              className="object-right"
-              onClick={downloadCommandSequence}
-            >
-              <FontAwesomeIcon icon="download" />
             </Button>
           </CardHeader>
           <CardBody>
