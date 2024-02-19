@@ -27,32 +27,26 @@ export class Motor {
     this.angle = value
 
     console.info(`Motor ${this.displayIndex}: Move to : ${value} ...`)
-    let result = await this.runCommand(
-      [
-        MotorController.nextRequestId(),
-        MotorCommands.MotorAbsoluteMove,
-        this.controller.id,
-        this.id,
-        Math.floor(this.angle * 1000)
-      ],
-      this.controller.motorMoveRequestTimeout
-    )
+    let result = await this.runCommand([
+      MotorController.nextRequestId(),
+      MotorCommands.MotorAbsoluteMove,
+      this.controller.id,
+      this.id,
+      Math.floor(this.angle * 1000)
+    ])
     console.info('done: ', result)
   }
 
   async moveBy(value: number) {
     this.angle += value
     console.log(`Motor ${this.displayIndex}: Move by : ${value}`)
-    await this.runCommand(
-      [
-        MotorController.nextRequestId(),
-        MotorCommands.MotorRelativeMove,
-        this.controller.id,
-        this.id,
-        Math.floor(value * 1000)
-      ],
-      this.controller.motorMoveRequestTimeout
-    )
+    await this.runCommand([
+      MotorController.nextRequestId(),
+      MotorCommands.MotorRelativeMove,
+      this.controller.id,
+      this.id,
+      Math.floor(value * 1000)
+    ])
   }
 
   async undo() {
@@ -65,24 +59,21 @@ export class Motor {
   async reset() {
     this.angle = 0
     this.lastSavedAngle = 0
-    await this.runCommand(
-      [
-        MotorController.nextRequestId(),
-        MotorCommands.MotorReset,
-        this.controller.id,
-        this.id
-      ],
-      this.controller.motorMoveRequestTimeout
-    )
+    await this.runCommand([
+      MotorController.nextRequestId(),
+      MotorCommands.MotorReset,
+      this.controller.id,
+      this.id
+    ])
   }
 
   get hasChanged() {
     return this.angle != this.lastSavedAngle
   }
 
-  async runCommand(command: MotorCommand, timeout: number): Promise<number> {
+  async runCommand(command: MotorCommand): Promise<number> {
     try {
-      const result = await this.controller.sendRequest(command, timeout)
+      const result = await this.controller.sendRequest(command)
       return result
     } catch (err) {
       console.error(`Error executing ${command}:`, err)

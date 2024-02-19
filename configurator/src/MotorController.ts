@@ -79,11 +79,10 @@ export default class MotorController {
 
       // TODO: See why the first couple of requests always time out
       try {
-        this.motorCount = await this.sendRequest(
-          [MotorCommands.MotorsCount, this.id],
-          this.statusRequestTimeout
-        ).then()
-
+        this.motorCount = await this.sendRequest([
+          MotorCommands.MotorsCount,
+          this.id
+        ]).then()
         console.log('Motor Count: ', this.motorCount)
       } catch (err) {
         console.error(err)
@@ -157,11 +156,14 @@ export default class MotorController {
     return result
   }
 
-  async sendRequest(
-    command: MotorCommand,
-    timeout: number
-  ): Promise<Promise<number>> {
+  async sendRequest(command: MotorCommand): Promise<Promise<number>> {
     const requestId = command[MessageParam.PARAM_REQUEST_ID]
+    let commandId = command[MessageParam.PARAM_COMMAND_ID]
+    let timeout =
+      commandId >= MotorCommands.MotorAbsoluteMove &&
+      commandId <= MotorCommands.MotorCutMove
+        ? this.motorMoveRequestTimeout
+        : this.statusRequestTimeout
     await this.sendSerial(command)
 
     const self = this
