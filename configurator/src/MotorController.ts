@@ -80,6 +80,7 @@ export default class MotorController {
       // TODO: See why the first couple of requests always time out
       try {
         this.motorCount = await this.sendRequest([
+          MotorController.nextRequestId(),
           MotorCommands.MotorsCount,
           this.id
         ]).then()
@@ -137,7 +138,10 @@ export default class MotorController {
       }
       const lineBreakIndex = this.buffer.indexOf('\n')
       if (lineBreakIndex >= 0) {
-        console.log('line: ', this.buffer.substring(0, lineBreakIndex).trim())
+        console.log(
+          'Received: ',
+          this.buffer.substring(0, lineBreakIndex).trim()
+        )
         try {
           result = deserializeCommand(
             this.buffer.substring(0, lineBreakIndex).trim()
@@ -183,3 +187,4 @@ export default class MotorController {
 }
 
 // TODO: Handle BOM
+// TODO: See what https://fmgrafikdesign.gitbook.io/simplewebserial/ does

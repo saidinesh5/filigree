@@ -23,6 +23,34 @@ export class Motor {
     makeAutoObservable(this)
   }
 
+  async setMotorType(value: number) {
+    if (value >= MotorType.Default && value <= MotorType.Disabled) {
+      this.motorType = value
+      let result = await this.runCommand([
+        MotorController.nextRequestId(),
+        MotorCommands.MotorSetType,
+        this.controller.id,
+        this.id,
+        value
+      ])
+
+      console.log('done: ', result)
+    } else {
+      console.error('Invalid motor type:', value)
+    }
+  }
+
+  async fetchMotorType() {
+    this.motorType = await this.runCommand([
+      MotorController.nextRequestId(),
+      MotorCommands.MotorGetType,
+      this.controller.id,
+      this.id
+    ])
+
+    console.log(`Motor id: ${this.id} ; type: ${this.motorType}`)
+  }
+
   async moveTo(value: number) {
     this.angle = value
 

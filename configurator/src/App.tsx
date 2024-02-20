@@ -37,15 +37,24 @@ const App = () => {
   ])
   const [motors, setMotors] = useState<Motor[]>([])
 
-  const updateMotors = () => {
+  const updateMotors = async () => {
     let newMotors: Motor[] = []
 
     for (let motorController of motorControllers.current) {
       if (motorController.isConnected) {
         for (let i = 0; i < motorController.motorCount; i++) {
-          newMotors.push(
-            new Motor(motorController, i, MotorType.Extruder, newMotors.length)
+          let motor = new Motor(
+            motorController,
+            i,
+            MotorType.Default,
+            newMotors.length
           )
+          try {
+            await motor.fetchMotorType()
+          } catch (err) {
+            console.error(err)
+          }
+          newMotors.push(motor)
         }
       }
     }
@@ -116,7 +125,7 @@ const App = () => {
         }
         const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
         try {
-          await motorControllers.current[controllerId].sendRequest(cmd, 1000)
+          await motorControllers.current[controllerId].sendRequest(cmd)
         } catch (err) {
           console.error(err)
         }
