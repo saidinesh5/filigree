@@ -77,8 +77,8 @@ void start_pause_button_callback() { isRunning = !isRunning; }
 void setup() {
   load_persistent_settings(&SETTINGS);
   motor_setup();
-  Serial.begin(9600);
-  uint32_t timeout = 5000;
+  Serial.begin(57600, SERIAL_8N1);
+  uint32_t timeout = 100;
   uint32_t startTime = millis();
   while (!Serial && millis() - startTime < timeout) {
     continue;
@@ -90,7 +90,7 @@ void setup() {
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
     Ethernet.begin(server_mac, server_ip);
     Log("Assigned manual IP address: ");
-    delay(3000);
+    delay(500);
     slave.connect(server_ip, 8888);
     if (slave.connected()) {
       Log("connected");
@@ -101,7 +101,7 @@ void setup() {
     Log("Unable to fetch filigree.txt. Working as slave.");
     Ethernet.begin(client_mac, server_ip);
     server.begin();
-    delay(2000);
+    delay(500);
   }
 
   attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
@@ -121,9 +121,6 @@ void loop() {
     }
 
     String line = filigreeFile.readStringUntil('\n');
-    Serial.print("line=");
-    Serial.println(line);
-    Serial.println(line.length());
     if (line.length() == 0 || line[0] == '#') {
       return;
     }
@@ -140,6 +137,7 @@ void loop() {
       // Do nothing
     }
   }
+  Serial.flush();
 }
 
 int *executeCommand(const String &line) {
@@ -166,21 +164,25 @@ int *executeCommand(const String &line) {
 
   int cmd = req[PARAM_COMMAND_ID];
   switch (cmd) {
-  case static_cast<int>(Commands::MotorsInitialize):
+  case static_cast<int>(Commands::MotorsInitialize): {
     res[PARAM_RESPONSE_RESULT] = motors_initalize();
     break;
+  }
 
-  case static_cast<int>(Commands::MotorsCount):
+  case static_cast<int>(Commands::MotorsCount): {
     res[PARAM_RESPONSE_RESULT] = motor_count();
     break;
+  }
 
-  case static_cast<int>(Commands::MotorStatus):
+  case static_cast<int>(Commands::MotorStatus): {
     res[PARAM_RESPONSE_RESULT] = motor_status(req[PARAM_MOTOR_ID]);
     break;
+  }
 
-  case static_cast<int>(Commands::MotorAlerts):
+  case static_cast<int>(Commands::MotorAlerts): {
     res[PARAM_RESPONSE_RESULT] = motor_alerts(req[PARAM_MOTOR_ID]);
     break;
+  }
 
   case static_cast<int>(Commands::MotorAbsoluteMove):
   case static_cast<int>(Commands::MotorRelativeMove):
@@ -194,20 +196,24 @@ int *executeCommand(const String &line) {
         motor_move(req[PARAM_MOTOR_ID],
                    static_cast<float>(req[PARAM_COMMAND_PARAM]) / 1000.0,
                    moveTarget, isCut);
-  } break;
+    break;
+  }
 
   case static_cast<int>(Commands::MotorReset): {
     res[PARAM_RESPONSE_RESULT] = motor_reset(req[PARAM_MOTOR_ID]);
-  } break;
+    break;
+  }
 
   case static_cast<int>(Commands::MotorGetType): {
     res[PARAM_RESPONSE_RESULT] = motor_get_type(req[PARAM_MOTOR_ID]);
-  } break;
+    break;
+  }
 
   case static_cast<int>(Commands::MotorSetType): {
     res[PARAM_RESPONSE_RESULT] =
         motor_set_type(req[PARAM_MOTOR_ID], req[PARAM_COMMAND_PARAM]);
-  } break;
+    break;
+  }
 
   default:
     res[PARAM_RESPONSE_ERROR] = -1;
