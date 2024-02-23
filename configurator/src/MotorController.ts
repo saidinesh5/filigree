@@ -30,6 +30,7 @@ export default class MotorController {
   private buffer: string = ''
   private bufferReadTimeout: number = 10
   private bufferPollerTimer: number | undefined
+  private outbox: MotorCommand[] = []
 
   constructor(public id: number) {
     makeAutoObservable(this)
@@ -60,6 +61,15 @@ export default class MotorController {
         }
       }
 
+      // Write out any pending messages before trying to read any new ones
+      while (this.outbox.length > 0) {
+        try {
+          await this.sendSerial(this.outbox.pop()!)
+        } catch (err) {
+          console.error(err)
+        }
+      }
+
       this.startPollingBuffer()
     }, this.bufferReadTimeout)
   }
@@ -74,10 +84,13 @@ export default class MotorController {
   async openPort() {
     try {
       this.port = await navigator.serial.requestPort()
-      if (!this.port.writable) await this.port.open({ baudRate: 9600 })
+      if (!this.port.writable) await this.port.open({ baudRate: 57600 })
+
+      // Wait until the setup is over
+      await sleep(2000)
+
       this.startPollingBuffer()
 
-      // TODO: See why the first couple of requests always time out
       try {
         this.motorCount = await this.sendRequest([
           MotorController.nextRequestId(),
@@ -85,6 +98,13 @@ export default class MotorController {
           this.id
         ]).then()
         console.log('Motor Count: ', this.motorCount)
+
+        // Initialize the motors
+        this.motorCount = await this.sendRequest([
+          MotorController.nextRequestId(),
+          MotorCommands.MotorsInitialize,
+          this.id
+        ]).then()
       } catch (err) {
         console.error(err)
       }
@@ -168,7 +188,8 @@ export default class MotorController {
       commandId <= MotorCommands.MotorCutMove
         ? this.motorMoveRequestTimeout
         : this.statusRequestTimeout
-    await this.sendSerial(command)
+    // await this.sendSerial(command)
+    this.outbox.push(command)
 
     const self = this
     return new Promise((resolve, reject) => {
