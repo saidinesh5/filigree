@@ -109,7 +109,7 @@ export class Motor {
     }
   }
 
-  getCommand(): MotorCommand {
+  getMoveCommand(): MotorCommand {
     return [
       MotorController.nextRequestId(),
       MotorCommands.MotorAbsoluteMove,

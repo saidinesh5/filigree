@@ -95,7 +95,7 @@ const App = () => {
     let newCommands = [...commandSequence]
     for (let motor of motors) {
       if (motor.hasChanged) {
-        newCommands.push(motor.getCommand())
+        newCommands.push(motor.getMoveCommand())
         motor.save()
       }
     }
