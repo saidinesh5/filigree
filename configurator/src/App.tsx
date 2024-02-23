@@ -280,78 +280,86 @@ const App = () => {
         </NavbarContent>
       </Navbar>
 
-      <div className="applicationgrid">
-        <Card className="leftpane max-w-xxl">
-          <CardHeader className="flex">
-            <h4 className="grow font-semibold">Motor Configuration</h4>
-            <Button className="object-right" onClick={resetAll}>
-              Reset All
-            </Button>
-          </CardHeader>
-          <CardBody>
-            <div className="list" ref={motorListRef}>
-              <ViewportList viewportRef={motorListRef} items={motors}>
-                {(motor, index) => (
-                  <div key={index}>
-                    <MotorControllerView motor={motor} />
-                    {index != motors.length - 1 ? (
-                      <Divider className="my-2" />
-                    ) : (
-                      ''
-                    )}
-                  </div>
-                )}
-              </ViewportList>
-            </div>
-          </CardBody>
-        </Card>
+      {motors.length == 0 ? (
+        <div className="fixed h-full w-full flex items-center justify-center bg-opacity-50">
+          <div className="flex-col items-center justify-center text-center">
+            <h1 className="text-5xl">Motors not found!</h1>
+            <h2 className="text-3xl">Please connect a Filigree controller.</h2>
+          </div>
+        </div>
+      ) : (
+        <div className="applicationgrid">
+          <Card className="leftpane max-w-xxl">
+            <CardHeader className="flex">
+              <h4 className="grow font-semibold">Motor Configuration</h4>
+              <Button className="object-right" onClick={resetAll}>
+                Reset All
+              </Button>
+            </CardHeader>
+            <CardBody>
+              <div className="list" ref={motorListRef}>
+                <ViewportList viewportRef={motorListRef} items={motors}>
+                  {(motor, index) => (
+                    <div key={index}>
+                      <MotorControllerView motor={motor} />
+                      {index != motors.length - 1 ? (
+                        <Divider className="my-2" />
+                      ) : (
+                        ''
+                      )}
+                    </div>
+                  )}
+                </ViewportList>
+              </div>
+            </CardBody>
+          </Card>
 
-        <Card className="rightpane max-w-xxl h-full">
-          <CardHeader className="flex gap-1">
-            <h4 className="grow font-semibold">Sequencer</h4>
-            <input
-              onChange={(event) => loadCommandSequence(event)}
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".txt"
-            />
-            <Button
-              isIconOnly
-              className="object-right"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <FontAwesomeIcon icon="folder-open" />
-            </Button>
-            <Button
-              isIconOnly
-              className="object-right"
-              onClick={saveCommandSequence}
-            >
-              <FontAwesomeIcon icon="floppy-disk" />
-            </Button>
-            <Divider orientation="vertical"></Divider>
-            <Button
-              isIconOnly
-              className="object-right"
-              onClick={isSequencePlaying ? pausePlayback : startPlayback}
-            >
-              <FontAwesomeIcon icon={isSequencePlaying ? 'pause' : 'play'} />
-            </Button>
-          </CardHeader>
-          <CardBody>
-            <SequencerList
-              motorControllers={motorControllers.current}
-              commandSequence={commandSequence}
-              removeCommandSequenceEntry={removeCommandSequenceEntry}
-              currentSequenceIndex={currentSequenceIndex}
-              onCurrentSequenceIndexChanged={(index) => {
-                setCurrentSequenceIndex(index)
-              }}
-            />
-            <Divider className="my-3" />
-            <div className="flex gap-unit-4xl justify-center">
-              {/*
+          <Card className="rightpane max-w-xxl h-full">
+            <CardHeader className="flex gap-1">
+              <h4 className="grow font-semibold">Sequencer</h4>
+              <input
+                onChange={(event) => loadCommandSequence(event)}
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".txt"
+              />
+              <Button
+                isIconOnly
+                className="object-right"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FontAwesomeIcon icon="folder-open" />
+              </Button>
+              <Button
+                isIconOnly
+                className="object-right"
+                onClick={saveCommandSequence}
+              >
+                <FontAwesomeIcon icon="floppy-disk" />
+              </Button>
+              <Divider orientation="vertical"></Divider>
+              <Button
+                isIconOnly
+                className="object-right"
+                onClick={isSequencePlaying ? pausePlayback : startPlayback}
+              >
+                <FontAwesomeIcon icon={isSequencePlaying ? 'pause' : 'play'} />
+              </Button>
+            </CardHeader>
+            <CardBody>
+              <SequencerList
+                motorControllers={motorControllers.current}
+                commandSequence={commandSequence}
+                removeCommandSequenceEntry={removeCommandSequenceEntry}
+                currentSequenceIndex={currentSequenceIndex}
+                onCurrentSequenceIndexChanged={(index) => {
+                  setCurrentSequenceIndex(index)
+                }}
+              />
+              <Divider className="my-3" />
+              <div className="flex gap-unit-4xl justify-center">
+                {/*
               <Button isIconOnly>
                 <FontAwesomeIcon icon="tape" />
               </Button>
@@ -359,16 +367,17 @@ const App = () => {
                 <FontAwesomeIcon icon="clock" />
               </Button>
               */}
-              {/* Add cut command to the sequencer*/}
-              <Button isIconOnly onClick={addCutCommands}>
-                <FontAwesomeIcon icon="scissors" />
-              </Button>
-              {/* Add move command to the sequencer*/}
-              <AddCommandsButton motors={motors}></AddCommandsButton>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
+                {/* Add cut command to the sequencer*/}
+                <Button isIconOnly onClick={addCutCommands}>
+                  <FontAwesomeIcon icon="scissors" />
+                </Button>
+                {/* Add move command to the sequencer*/}
+                <AddCommandsButton motors={motors}></AddCommandsButton>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
       <ToastContainer />
     </div>
   )
