@@ -55,18 +55,20 @@ const App = () => {
             MotorType.Default,
             newMotors.length
           )
-          try {
-            await motor.fetchMotorType()
-          } catch (err) {
-            console.error(err)
-            toast.error(`Unable to fetch motor type for motor: ${motor.id}`)
-          }
           newMotors.push(motor)
         }
       }
     }
 
     if (newMotors.length != motors.length) {
+      for (let motor of newMotors) {
+        try {
+          await motor.fetchMotorType()
+        } catch (err) {
+          console.error(err)
+          toast.error(`Unable to fetch motor type for motor: ${motor.id}`)
+        }
+      }
       setTimeout(() => setMotors(newMotors), 10)
     }
   }
