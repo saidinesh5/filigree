@@ -29,6 +29,7 @@ import {
 import { saveAs } from 'file-saver'
 import { observer } from 'mobx-react-lite'
 import { autorun } from 'mobx'
+import { sleep } from './utils'
 
 const App = () => {
   const motorControllers = useRef([
@@ -149,6 +150,7 @@ const App = () => {
         }
         setCurrentSequenceIndex(i)
         i++
+        await sleep(100)
       }
 
       isSequencePlayingRef.current = false

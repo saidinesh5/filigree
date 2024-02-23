@@ -8,10 +8,7 @@ import {
   deserializeCommand,
   serializeCommand
 } from './MotorCommand'
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+import { sleep } from './utils'
 
 interface RequestTracker {
   resolver: (value: any) => void
