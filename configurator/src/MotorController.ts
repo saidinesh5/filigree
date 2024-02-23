@@ -64,7 +64,7 @@ export default class MotorController {
       // Write out any pending messages before trying to read any new ones
       while (this.outbox.length > 0) {
         try {
-          await this.sendSerial(this.outbox.pop()!)
+          await this.sendSerial(this.outbox.shift()!)
         } catch (err) {
           console.error(err)
         }
