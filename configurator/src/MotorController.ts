@@ -90,23 +90,18 @@ export default class MotorController {
 
       this.startPollingBuffer()
 
-      try {
-        this.motorCount = await this.sendRequest([
-          MotorController.nextRequestId(),
-          MotorCommands.MotorsCount,
-          this.id
-        ]).then()
-        console.log('Motor Count: ', this.motorCount)
+      this.motorCount = await this.sendRequest([
+        MotorController.nextRequestId(),
+        MotorCommands.MotorsCount,
+        this.id
+      ]).then()
 
-        // Initialize the motors
-        await this.sendRequest([
-          MotorController.nextRequestId(),
-          MotorCommands.MotorsInitialize,
-          this.id
-        ]).then()
-      } catch (err) {
-        console.error(err)
-      }
+      // Initialize the motors
+      await this.sendRequest([
+        MotorController.nextRequestId(),
+        MotorCommands.MotorsInitialize,
+        this.id
+      ]).then()
 
       this.isConnected = this.port.writable ? true : false
     } catch (err) {
