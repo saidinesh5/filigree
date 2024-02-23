@@ -13,6 +13,9 @@ import {
 } from '@nextui-org/react'
 import './App.css'
 
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+
 import MotorController from './MotorController'
 import MotorControllerView from './MotorControllerView'
 
@@ -24,6 +27,7 @@ import {
   MessageParam,
   MotorCommand,
   MotorCommands,
+  serializeCommand,
   serializeCommands
 } from './MotorCommand'
 import { saveAs } from 'file-saver'
@@ -54,6 +58,7 @@ const App = () => {
             await motor.fetchMotorType()
           } catch (err) {
             console.error(err)
+            toast.error(`Unable to fetch motor type for motor: ${motor.id}`)
           }
           newMotors.push(motor)
         }
@@ -120,7 +125,7 @@ const App = () => {
       setCommandSequence(newCommands)
       setCurrentSequenceIndex(newCommands.length - 1)
     } else {
-      console.error('No cutter motors were found!')
+      toast.error('No cutter motors were found!')
     }
   }
 
@@ -147,6 +152,7 @@ const App = () => {
           await motorControllers.current[controllerId].sendRequest(cmd)
         } catch (err) {
           console.error(err)
+          toast.error(`Error Playing back command: ${serializeCommand(cmd)}`)
         }
         setCurrentSequenceIndex(i)
         i++
@@ -215,6 +221,7 @@ const App = () => {
           }
         } catch (err) {
           console.error(err)
+          toast.error('Unable to load command sequence')
         }
       }
     }
@@ -364,6 +371,7 @@ const App = () => {
           </CardBody>
         </Card>
       </div>
+      <ToastContainer />
     </div>
   )
 }

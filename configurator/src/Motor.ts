@@ -1,6 +1,7 @@
 import { makeAutoObservable } from 'mobx'
-import { MotorCommand, MotorCommands } from './MotorCommand'
+import { MotorCommand, MotorCommands, serializeCommand } from './MotorCommand'
 import MotorController from './MotorController'
+import { toast } from 'react-toastify'
 
 export enum MotorType {
   Default = 0,
@@ -36,7 +37,7 @@ export class Motor {
 
       console.log('done: ', result)
     } else {
-      console.error('Invalid motor type:', value)
+      toast.error(`Invalid motor type: ${value}`)
     }
   }
 
@@ -105,6 +106,7 @@ export class Motor {
       return result
     } catch (err) {
       console.error(`Error executing ${command}:`, err)
+      toast.error(`Error executing ${serializeCommand(command)}:`)
       return -1
     }
   }

@@ -9,6 +9,7 @@ import {
   serializeCommand
 } from './MotorCommand'
 import { sleep } from './utils'
+import { toast } from 'react-toastify'
 
 interface RequestTracker {
   resolver: (value: any) => void
@@ -54,7 +55,7 @@ export default class MotorController {
           }
           delete this.activeRequests[id]
         } else {
-          console.error('dropping response:', response)
+          toast.error(`dropping response: ${response}`)
         }
       }
 
@@ -83,6 +84,7 @@ export default class MotorController {
       this.port = await navigator.serial.requestPort()
       if (!this.port.writable) await this.port.open({ baudRate: 57600 })
 
+      toast.info(`Trying to connect to Controller ${this.id} ...`)
       // Wait until the setup is over
       await sleep(2000)
 
@@ -109,6 +111,7 @@ export default class MotorController {
       this.isConnected = this.port.writable ? true : false
     } catch (err) {
       console.error('There was an error opening the serial port:', err)
+      toast.error(`Unable to connect to Controller: ${this.id}`)
     }
   }
 
