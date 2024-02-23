@@ -26,7 +26,7 @@ function angle(command: MotorCommand): number {
     case MotorCommands.MotorAbsoluteMove:
     case MotorCommands.MotorCutMove:
     case MotorCommands.MotorRelativeMove:
-      return command[MessageParam.PARAM_COMMAND_PARAM] / 1000
+      return command[MessageParam.PARAM_COMMAND_PARAM]
     default:
       return NaN
   }

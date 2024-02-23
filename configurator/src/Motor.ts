@@ -61,7 +61,7 @@ export class Motor {
       MotorCommands.MotorAbsoluteMove,
       this.controller.id,
       this.id,
-      Math.floor(this.angle * 1000)
+      Math.floor(this.angle)
     ])
     console.info('done: ', result)
   }
@@ -74,7 +74,7 @@ export class Motor {
       MotorCommands.MotorRelativeMove,
       this.controller.id,
       this.id,
-      Math.floor(value * 1000)
+      Math.floor(value)
     ])
   }
 
@@ -117,7 +117,7 @@ export class Motor {
       MotorCommands.MotorAbsoluteMove,
       this.controller.id,
       this.id,
-      this.angle * 1000
+      this.angle
     ]
   }
 
@@ -128,7 +128,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        142 * 1000
+        142
       ]
     } else if (this.motorType === MotorType.CutterTop) {
       return [
@@ -136,7 +136,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        122 * 1000
+        122
       ]
     } else {
       return undefined

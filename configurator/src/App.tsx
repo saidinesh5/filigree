@@ -27,6 +27,7 @@ import {
   MessageParam,
   MotorCommand,
   MotorCommands,
+  deserializeCommand,
   serializeCommand,
   serializeCommands
 } from './MotorCommand'
@@ -210,12 +211,7 @@ const App = () => {
             const commands = txt
               .split('\n')
               .filter((l) => l.length > 0 && l[0] != '#')
-              .map((x) =>
-                x
-                  .split(',')
-                  .filter((c) => c.length > 0)
-                  .map((x) => parseInt(x.trim()))
-              )
+              .map((l) => deserializeCommand(l))
             setCommandSequence(commands)
             return
           }

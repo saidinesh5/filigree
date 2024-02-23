@@ -26,6 +26,15 @@ export enum MessageParam {
 }
 
 export function serializeCommand(cmd: number[]) {
+  cmd = [...cmd]
+  const cmdId = cmd[MessageParam.PARAM_COMMAND_ID]
+  if (
+    cmdId === MotorCommands.MotorAbsoluteMove ||
+    cmdId === MotorCommands.MotorCutMove ||
+    cmdId === MotorCommands.MotorRelativeMove
+  ) {
+    cmd[MessageParam.PARAM_COMMAND_PARAM] *= 1000
+  }
   return (
     [...cmd, ...Array(MessageParam.PARAM_COUNT).fill(0)]
       .slice(0, MessageParam.PARAM_COUNT)
@@ -33,8 +42,17 @@ export function serializeCommand(cmd: number[]) {
   )
 }
 
-export function deserializeCommand(line: string) {
-  return line.split(',').map((x) => parseInt(x.trim()))
+export function deserializeCommand(line: string): MotorCommand {
+  let cmd = line.split(',').map((x) => parseInt(x.trim()))
+  const cmdId = cmd[MessageParam.PARAM_COMMAND_ID]
+  if (
+    cmdId === MotorCommands.MotorAbsoluteMove ||
+    cmdId === MotorCommands.MotorCutMove ||
+    cmdId === MotorCommands.MotorRelativeMove
+  ) {
+    cmd[MessageParam.PARAM_COMMAND_PARAM] /= 1000
+  }
+  return cmd
 }
 
 export function serializeCommands(cmds: MotorCommand[]) {
