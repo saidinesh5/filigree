@@ -100,7 +100,7 @@ export default class MotorController {
         console.log('Motor Count: ', this.motorCount)
 
         // Initialize the motors
-        this.motorCount = await this.sendRequest([
+        await this.sendRequest([
           MotorController.nextRequestId(),
           MotorCommands.MotorsInitialize,
           this.id
