@@ -61,7 +61,7 @@ export class Motor {
       MotorCommands.MotorAbsoluteMove,
       this.controller.id,
       this.id,
-      Math.floor(this.angle)
+      this.angle
     ])
     console.info('done: ', result)
   }
@@ -74,7 +74,7 @@ export class Motor {
       MotorCommands.MotorRelativeMove,
       this.controller.id,
       this.id,
-      Math.floor(value)
+      value
     ])
   }
 

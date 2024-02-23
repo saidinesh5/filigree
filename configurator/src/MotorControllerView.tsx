@@ -13,6 +13,11 @@ const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
     motor.moveTo(Math.min(360, Math.max(0, angle)))
   }
 
+  const moveBy = (angle: number) => {
+    angle += motor.angle
+    motor.moveTo(angle)
+  }
+
   useEffect(() => setLocalAngle(motor.angle), [motor.angle])
 
   const motorTypes = [
@@ -44,17 +49,22 @@ const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
       {motor.motorType == MotorType.Extruder ? (
         <div className="grow">
           <div className="flex items-center space-x-2">
-            <Button isIconOnly radius="full" onClick={() => motor.moveBy(-2.5)}>
+            <Button isIconOnly radius="full" onClick={() => moveBy(-2.5)}>
               <FontAwesomeIcon icon="minus" />
             </Button>
-            <Button isIconOnly radius="full" onClick={() => motor.moveBy(-0.5)}>
+            <Button isIconOnly radius="full" onClick={() => moveBy(-0.5)}>
               <FontAwesomeIcon icon="circle-minus" />
             </Button>
-            <Input type="number" label="Angle" value={`${motor.angle}`} />
-            <Button isIconOnly radius="full" onClick={() => motor.moveBy(+0.5)}>
+            <Input
+              type="number"
+              label="Angle"
+              value={`${motor.angle}`}
+              onValueChange={(value: string) => motor.moveTo(Number(value))}
+            />
+            <Button isIconOnly radius="full" onClick={() => moveBy(+0.5)}>
               <FontAwesomeIcon icon="circle-plus" />
             </Button>
-            <Button isIconOnly radius="full" onClick={() => motor.moveBy(+2.5)}>
+            <Button isIconOnly radius="full" onClick={() => moveBy(+2.5)}>
               <FontAwesomeIcon icon="plus" />
             </Button>
           </div>

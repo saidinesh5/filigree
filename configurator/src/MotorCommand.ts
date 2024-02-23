@@ -33,7 +33,9 @@ export function serializeCommand(cmd: number[]) {
     cmdId === MotorCommands.MotorCutMove ||
     cmdId === MotorCommands.MotorRelativeMove
   ) {
-    cmd[MessageParam.PARAM_COMMAND_PARAM] *= 1000
+    cmd[MessageParam.PARAM_COMMAND_PARAM] = Math.round(
+      cmd[MessageParam.PARAM_COMMAND_PARAM] * 1000
+    )
   }
   return (
     [...cmd, ...Array(MessageParam.PARAM_COUNT).fill(0)]
