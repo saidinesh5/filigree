@@ -69,6 +69,7 @@ const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
           step={0.5}
           label="Angle"
           formatOptions={{ minimumFractionDigits: 1 }}
+          isDisabled={motor.motorType === MotorType.Disabled}
           onChange={(value: number | number[]) =>
             setLocalAngle(Array.isArray(value) ? value[0] : value)
           }
