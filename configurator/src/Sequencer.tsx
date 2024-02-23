@@ -21,6 +21,17 @@ function motorDisplayIndex(
   }
 }
 
+function angle(command: MotorCommand): number {
+  switch (command[MessageParam.PARAM_COMMAND_ID]) {
+    case MotorCommands.MotorAbsoluteMove:
+    case MotorCommands.MotorCutMove:
+    case MotorCommands.MotorRelativeMove:
+      return command[MessageParam.PARAM_COMMAND_PARAM] / 1000
+    default:
+      return NaN
+  }
+}
+
 function describe(
   motorControllers: MotorController[],
   command: MotorCommand
@@ -35,11 +46,11 @@ function describe(
     case MotorCommands.MotorAlerts:
       return `Get Motor Alerts ${motorDisplayIndex(motorControllers, command)}`
     case MotorCommands.MotorAbsoluteMove:
-      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to ${command[MessageParam.PARAM_COMMAND_PARAM]} deg`
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to ${angle(command)} deg`
     case MotorCommands.MotorRelativeMove:
-      return `Move Motor ${motorDisplayIndex(motorControllers, command)} by ${command[MessageParam.PARAM_COMMAND_PARAM]} deg`
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} by ${angle(command)} deg`
     case MotorCommands.MotorCutMove:
-      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to cut`
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to cut at ${angle(command)} deg`
     case MotorCommands.MotorReset:
       return `Reset Motor ${motorDisplayIndex(motorControllers, command)}`
     case MotorCommands.MotorGetType:

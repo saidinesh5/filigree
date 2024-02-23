@@ -115,8 +115,30 @@ export class Motor {
       MotorCommands.MotorAbsoluteMove,
       this.controller.id,
       this.id,
-      this.angle
+      this.angle * 1000
     ]
+  }
+
+  getCutCommand(): MotorCommand | undefined {
+    if (this.motorType === MotorType.CutterBottom) {
+      return [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorCutMove,
+        this.controller.id,
+        this.id,
+        142 * 1000
+      ]
+    } else if (this.motorType === MotorType.CutterTop) {
+      return [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorCutMove,
+        this.controller.id,
+        this.id,
+        122 * 1000
+      ]
+    } else {
+      return undefined
+    }
   }
 
   save() {

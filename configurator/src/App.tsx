@@ -105,6 +105,24 @@ const App = () => {
     }
   }
 
+  const addCutCommands = () => {
+    let newCommands: MotorCommand[] = [...commandSequence]
+
+    for (let motor of motors) {
+      let cmd = motor.getCutCommand()
+      if (cmd) {
+        newCommands.push(cmd)
+      }
+    }
+
+    if (newCommands.length > commandSequence.length) {
+      setCommandSequence(newCommands)
+      setCurrentSequenceIndex(newCommands.length - 1)
+    } else {
+      console.error('No cutter motors were found!')
+    }
+  }
+
   const removeCommandSequenceEntry = (id: number) => {
     if (id >= commandSequence.length) return
 
@@ -335,7 +353,7 @@ const App = () => {
               </Button>
               */}
               {/* Add cut command to the sequencer*/}
-              <Button isIconOnly>
+              <Button isIconOnly onClick={addCutCommands}>
                 <FontAwesomeIcon icon="scissors" />
               </Button>
               {/* Add move command to the sequencer*/}
