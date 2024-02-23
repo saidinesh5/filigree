@@ -57,7 +57,7 @@ enum MessageParam {
 };
 
 bool parseMessage(const String &line, int *message, int messageSize) {
-  if (line.length() == 0 || line[0] == '#') {
+  if (line.length() < PARAM_COUNT || line[0] == '#') {
     return true;
   }
 
