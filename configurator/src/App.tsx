@@ -284,7 +284,18 @@ const App = () => {
         <div className="fixed h-full w-full flex items-center justify-center bg-opacity-50">
           <div className="flex-col items-center justify-center text-center">
             <h1 className="text-5xl">Motors not found!</h1>
-            <h2 className="text-3xl">Please connect a Filigree controller.</h2>
+            {'serial' in navigator ? (
+              <h2 className="text-3xl">
+                Please connect a Filigree controller.
+              </h2>
+            ) : (
+              <h2 className="text-3xl">
+                Make sure your browser{' '}
+                <a className="underline" href="https://caniuse.com/web-serial">
+                  supports Web Serial
+                </a>
+              </h2>
+            )}
           </div>
         </div>
       ) : (
