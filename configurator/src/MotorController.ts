@@ -19,7 +19,7 @@ interface RequestTracker {
 export default class MotorController {
   public port?: SerialPort
   public isConnected: boolean = false
-  public motorCount: number = 4
+  public motorCount: number = 0
   private static requestId: number = 0
 
   private activeRequests: { [requestID: number]: RequestTracker } = {}
