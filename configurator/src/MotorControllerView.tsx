@@ -12,9 +12,6 @@ const MotorControllerView = observer(({ motor }: { motor: Motor }) => {
   const onAngleChange = (angle: number) => {
     motor.moveTo(Math.min(360, Math.max(0, angle)))
   }
-  const onRelativeAngleChange = (angle: number) => {
-    motor.moveBy(angle)
-  }
 
   useEffect(() => setLocalAngle(motor.angle), [motor.angle])
 
