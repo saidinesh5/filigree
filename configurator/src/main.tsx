@@ -39,10 +39,13 @@ library.add(
 )
 
 import { NextUIProvider } from '@nextui-org/react'
+import Konami from 'react-konami-code'
+import { toast } from 'react-toastify'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <NextUIProvider>
+      <Konami action={() => toast.info(':D was here')}></Konami>
       <App />
     </NextUIProvider>
   </React.StrictMode>

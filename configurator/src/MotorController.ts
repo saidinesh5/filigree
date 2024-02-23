@@ -84,7 +84,7 @@ export default class MotorController {
       this.port = await navigator.serial.requestPort()
       if (!this.port.writable) await this.port.open({ baudRate: 57600 })
 
-      toast.info(`Trying to connect to Controller ${this.id} ...`)
+      toast.info(`Connecting to Controller ${this.id} ...`)
       // Wait until the setup is over
       await sleep(2000)
 

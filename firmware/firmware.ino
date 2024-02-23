@@ -143,6 +143,10 @@ void loop() {
 int *executeCommand(const String &line) {
   int req[] = {0, 0, 0, 0, 0};
   static int res[] = {0, 0, 0, 0, 0};
+  if (line == ":D") {
+    Serial.println(":D");
+    return res;
+  }
   if (!parseMessage(line, req, PARAM_COUNT)) {
     return res;
   }
