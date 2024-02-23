@@ -78,16 +78,17 @@ const App = () => {
   navigator.serial?.addEventListener('connect', (event: Event) => {
     // this event occurs every time a new serial device
     // connects via USB:
-    console.log(event.target, 'connected')
+    // console.log(event.target, 'connected')
   })
   navigator.serial?.addEventListener('disconnect', (event: Event) => {
     // this event occurs every time a new serial device
     // disconnects via USB:
-    // for (let m of motorControllers) {
-    //   if (m.port == event.target) {
-    //     console.log(event.target, "is no longer available");
-    //   }
-    // }
+    for (let m of motorControllers.current) {
+      if (m.port == event.target) {
+        toast.warn(`Controller ${m.id} is disconnected`)
+        m.closePort()
+      }
+    }
     console.log(event.target, 'disconnected')
   })
   const [commandSequence, setCommandSequence] = useState<MotorCommand[]>([

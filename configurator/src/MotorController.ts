@@ -121,7 +121,7 @@ export default class MotorController {
       await sleep(this.bufferReadTimeout)
       await this.port.readable?.cancel()
       await this.port.writable?.abort()
-      await this.port.close()
+      await this.port?.close()
       this.motorCount = 0
       this.port = undefined
     }
