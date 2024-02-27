@@ -119,9 +119,16 @@ const App = () => {
     let newCommands: MotorCommand[] = [...commandSequence]
 
     for (let motor of motors) {
-      let cmd = motor.getCutCommand()
+      let cmd = motor.getCutStartCommand()
       if (cmd) {
-        newCommands.push(cmd)
+        newCommands.push(...cmd)
+      }
+    }
+
+    for (let motor of motors) {
+      let cmd = motor.getCutEndCommand()
+      if (cmd) {
+        newCommands.push(...cmd)
       }
     }
 

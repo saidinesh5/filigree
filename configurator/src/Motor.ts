@@ -121,25 +121,64 @@ export class Motor {
     ]
   }
 
-  getCutCommand(): MotorCommand | undefined {
+
+  getCutEndCommand(): [MotorCommand] | undefined {
     if (this.motorType === MotorType.CutterBottom) {
-      return [
+      const command: MotorCommand = [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        142
-      ]
+        0
+      ];
+
+
+
+      return [command];
     } else if (this.motorType === MotorType.CutterTop) {
-      return [
+      const command: MotorCommand = [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        122
-      ]
+        0
+      ];
+
+
+
+      return [command];
     } else {
-      return undefined
+      return undefined;
+    }
+  }
+
+  getCutStartCommand(): [MotorCommand] | undefined {
+    if (this.motorType === MotorType.CutterBottom) {
+      const command: MotorCommand = [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorCutMove,
+        this.controller.id,
+        this.id,
+        137.5
+      ];
+
+
+
+      return [command];
+    } else if (this.motorType === MotorType.CutterTop) {
+      const command: MotorCommand = [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorCutMove,
+        this.controller.id,
+        this.id,
+        126.5
+      ];
+
+
+
+      return [command];
+    } else {
+      return undefined;
     }
   }
 
