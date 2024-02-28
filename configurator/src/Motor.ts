@@ -159,7 +159,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        137.5
+        139
       ];
 
 
@@ -171,7 +171,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        126.5
+        125
       ];
 
 
