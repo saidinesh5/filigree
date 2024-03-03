@@ -68,8 +68,9 @@ export class Motor {
 
   async moveBy(value: number) {
     this.angle += value
+
     console.log(`Motor ${this.displayIndex}: Move by : ${value}`)
-    await this.runCommand([
+    let result = await this.runCommand([
       MotorController.nextRequestId(),
       MotorCommands.MotorRelativeMove,
       this.controller.id,
@@ -121,64 +122,47 @@ export class Motor {
     ]
   }
 
-
-  getCutEndCommand(): [MotorCommand] | undefined {
+  getCutEndCommand(): MotorCommand | undefined {
     if (this.motorType === MotorType.CutterBottom) {
-      const command: MotorCommand = [
+      return [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
         0
-      ];
-
-
-
-      return [command];
+      ]
     } else if (this.motorType === MotorType.CutterTop) {
-      const command: MotorCommand = [
+      return [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
         0
-      ];
-
-
-
-      return [command];
+      ]
     } else {
-      return undefined;
+      return undefined
     }
   }
 
-  getCutStartCommand(): [MotorCommand] | undefined {
+  getCutStartCommand(): MotorCommand | undefined {
     if (this.motorType === MotorType.CutterBottom) {
-      const command: MotorCommand = [
+      return [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
         139
-      ];
-
-
-
-      return [command];
+      ]
     } else if (this.motorType === MotorType.CutterTop) {
-      const command: MotorCommand = [
+      return [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
         125
-      ];
-
-
-
-      return [command];
+      ]
     } else {
-      return undefined;
+      return undefined
     }
   }
 
