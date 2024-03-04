@@ -133,6 +133,7 @@ void loop() {
     } else if (client.connected() && client.available()) {
       client.println(createMessage(executeCommand(client.readStringUntil('\n')),
                                    PARAM_COUNT));
+      client.flush();
     } else {
       // Do nothing
     }
@@ -150,18 +151,26 @@ int *executeCommand(const String &line) {
   if (!parseMessage(line, req, PARAM_COUNT)) {
     return res;
   }
+
   res[PARAM_REQUEST_ID] = req[PARAM_REQUEST_ID];
 
   if (req[PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
     slave.println(line);
-    while (!slave.available()) {
-      Log("Waiting for slave...");
-    }
+    slave.flush();
+    bool responseReceived = false;
+    while (!responseReceived) {
+      while (!slave.available()) {
+        Log("Waiting for slave...");
+      }
 
-    String line = slave.readStringUntil('\n');
-    parseMessage(line, res, 5);
-    if (res[PARAM_RESPONSE_ERROR] != 0) {
-      isRunning = false;
+      String line = slave.readStringUntil('\n');
+      parseMessage(line, res, 5);
+      if (res[PARAM_REQUEST_ID] == req[PARAM_REQUEST_ID]) {
+        responseReceived = true;
+      }
+      if (res[PARAM_RESPONSE_ERROR] != 0) {
+        isRunning = false;
+      }
     }
     return res;
   }
