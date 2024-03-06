@@ -1,0 +1,33 @@
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+      - run: sudo apt-get update && sudo apt-get install -y cpplint
+      - name: Run pre-commit checks
+        uses: pre-commit/action@v3.0.0
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: './configurator/package-lock.json'
+      - name: Build configurator
+        working-directory: ./configurator
+        run: |
+          npm install
+          npm run build
+      - name: Deploy Configurator
+        uses: i3h/deploy-with-scp@v1
+        with:
+          src: ./configurator/dist/*
+          dest: ${{ secrets.CONFIGURATOR_DEPLOY_PATH }}
+          username: ${{ secrets.CONFIGURATOR_DEPLOY_USER }}
+          server-ip: ${{ secrets.CONFIGURATOR_DEPLOY_SERVER }}
+          ssh-key: ${{ secrets.CONFIGURATOR_DEPLOY_KEY }}
