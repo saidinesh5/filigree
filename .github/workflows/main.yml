@@ -24,10 +24,10 @@ jobs:
           npm install
           npm run build
       - name: Deploy Configurator
-        uses: i3h/deploy-with-scp@v1
+        uses: horochx/deploy-via-scp@master
         with:
-          src: ./configurator/dist/*
-          dest: ${{ secrets.CONFIGURATOR_DEPLOY_PATH }}
-          username: ${{ secrets.CONFIGURATOR_DEPLOY_USER }}
-          server-ip: ${{ secrets.CONFIGURATOR_DEPLOY_SERVER }}
-          ssh-key: ${{ secrets.CONFIGURATOR_DEPLOY_KEY }}
+          local: ./configurator/dist/*
+          remote: ${{ secrets.CONFIGURATOR_DEPLOY_PATH }}
+          host: ${{ secrets.CONFIGURATOR_DEPLOY_SERVER }}
+          user: ${{ secrets.CONFIGURATOR_DEPLOY_USER }}
+          key: ${{ secrets.CONFIGURATOR_DEPLOY_KEY }}
