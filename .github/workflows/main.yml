@@ -24,6 +24,7 @@ jobs:
           npm install
           npm run build
       - name: Deploy Configurator
+        if: github.ref == 'refs/heads/master'
         uses: horochx/deploy-via-scp@master
         with:
           local: ./configurator/dist/*
