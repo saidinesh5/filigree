@@ -19,6 +19,8 @@
 #include "log.h"
 #include "persistentsettings.h"
 
+#include "Arduino.h"
+
 #include "ClearCore.h"
 MotorDriver *motors[] = {&ConnectorM0, &ConnectorM1, &ConnectorM2,
                          &ConnectorM3};
@@ -83,8 +85,12 @@ uint32_t motor_angle() {
   int angle = 0; // find the parameter where you can find angle
   return angle;
 }
+uint32_t motors_wait(int del) {
+  delay(del);
 
-uint32_t motor_reset(int motor_id) {
+  return 0;
+}
+uint32_t motor_reset(uint8_t motor_id) {
   MotorDriver *motor = motors[motor_id];
   motor->HlfbMode(
       MotorDriver::HLFB_MODE_HAS_BIPOLAR_PWM); // sets the motors HLFB mode to

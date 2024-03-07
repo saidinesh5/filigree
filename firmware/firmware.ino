@@ -228,6 +228,11 @@ int *executeCommand(const String &line) {
     break;
   }
 
+  case static_cast<int>(Commands::MotorDelay): {
+    res[PARAM_RESPONSE_RESULT] = motors_wait(req[PARAM_COMMAND_PARAM]);
+    break;
+  }
+
   default:
     res[PARAM_RESPONSE_ERROR] = -1;
   }
