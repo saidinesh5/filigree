@@ -77,6 +77,7 @@ export class Motor {
       this.id,
       value
     ])
+    console.info('done: ', result)
   }
 
   async undo() {
@@ -113,13 +114,23 @@ export class Motor {
   }
 
   getMoveCommand(): MotorCommand {
-    return [
-      MotorController.nextRequestId(),
-      MotorCommands.MotorAbsoluteMove,
-      this.controller.id,
-      this.id,
-      this.angle
-    ]
+    if (this.motorType == MotorType.Extruder) {
+      return [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorRelativeMove,
+        this.controller.id,
+        this.id,
+        this.angle
+      ]
+    } else {
+      return [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorAbsoluteMove,
+        this.controller.id,
+        this.id,
+        this.angle
+      ]
+    }
   }
 
   getCutEndCommand(): MotorCommand | undefined {
@@ -167,6 +178,11 @@ export class Motor {
   }
 
   save() {
-    this.lastSavedAngle = this.angle
+    if (this.motorType == MotorType.Extruder) {
+      this.lastSavedAngle = 0
+      this.angle = 0
+    } else {
+      this.lastSavedAngle = this.angle
+    }
   }
 }

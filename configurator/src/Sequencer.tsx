@@ -50,7 +50,7 @@ function describe(
     case MotorCommands.MotorRelativeMove:
       return `Move Motor ${motorDisplayIndex(motorControllers, command)} by ${angle(command)} deg`
     case MotorCommands.MotorCutMove:
-      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to cut at ${angle(command)} deg`
+      return `Move Motor ${motorDisplayIndex(motorControllers, command)} to cut`
     case MotorCommands.MotorReset:
       return `Reset Motor ${motorDisplayIndex(motorControllers, command)}`
     case MotorCommands.MotorGetType:

@@ -66,6 +66,7 @@ void load_persistent_settings(PersistentSettings *settings) {
     settings->resolution = 1600;
     settings->cuttingVelocityLimit = 30000;       // 60000
     settings->cuttingAccelerationLimit = 1000000; // 2000000
+
     settings->motorType[0] = static_cast<uint8_t>(MotorType::Default);
     settings->motorType[1] = static_cast<uint8_t>(MotorType::Default);
     settings->motorType[2] = static_cast<uint8_t>(MotorType::Default);

@@ -75,7 +75,7 @@ const App = () => {
 
   autorun(updateMotors)
 
-  navigator.serial?.addEventListener('connect', (event: Event) => {
+  navigator.serial?.addEventListener('connect', (_event: Event) => {
     // this event occurs every time a new serial device
     // connects via USB:
     // console.log(event.target, 'connected')
