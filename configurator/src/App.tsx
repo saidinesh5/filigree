@@ -130,8 +130,8 @@ const App = () => {
         newCommands.push(cmd)
       }
     }
-
-    newCommands.push(delayMotor.getDelayCommand(50))
+    let cmd = delayMotor.getDelayCommand(50)
+    newCommands.push(cmd)
 
     for (let motor of motors) {
       let cmd = motor.getCutEndCommand()
@@ -139,7 +139,7 @@ const App = () => {
         newCommands.push(cmd)
       }
     }
-    newCommands.push(delayMotor.getDelayCommand(50))
+    newCommands.push(cmd)
 
     if (newCommands.length > commandSequence.length) {
       setCommandSequence(newCommands)
