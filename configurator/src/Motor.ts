@@ -133,6 +133,10 @@ export class Motor {
     }
   }
 
+  getDelayCommand(): MotorCommand {
+    return [MotorController.nextRequestId(), MotorCommands.MotorDelay, 0, 0, 50]
+  }
+
   getCutEndCommand(): MotorCommand | undefined {
     if (this.motorType === MotorType.CutterBottom) {
       return [
@@ -162,7 +166,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        139
+        135
       ]
     } else if (this.motorType === MotorType.CutterTop) {
       return [
@@ -170,7 +174,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        125
+        124
       ]
     } else {
       return undefined
