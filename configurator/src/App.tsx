@@ -117,21 +117,13 @@ const App = () => {
 
   const addCutCommands = () => {
     let newCommands: MotorCommand[] = [...commandSequence]
-    const delayMotor = new Motor(
-      new MotorController(0),
-      0,
-      MotorType.Default,
-      0
-    )
 
     for (let motor of motors) {
       let cmd = motor.getCutStartCommand()
       if (cmd) {
-        newCommands.push(cmd)
+        newCommands.push(...cmd)
       }
     }
-    let cmd = delayMotor.getDelayCommand(50)
-    newCommands.push(cmd)
 
     for (let motor of motors) {
       let cmd = motor.getCutEndCommand()
@@ -139,7 +131,6 @@ const App = () => {
         newCommands.push(cmd)
       }
     }
-    newCommands.push(cmd)
 
     if (newCommands.length > commandSequence.length) {
       setCommandSequence(newCommands)

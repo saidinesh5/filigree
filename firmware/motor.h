@@ -85,11 +85,7 @@ uint32_t motor_angle() {
   int angle = 0; // find the parameter where you can find angle
   return angle;
 }
-uint32_t motors_wait(int del) {
-  delay(del);
 
-  return 0;
-}
 uint32_t motor_reset(uint8_t motor_id) {
   MotorDriver *motor = motors[motor_id];
   motor->HlfbMode(

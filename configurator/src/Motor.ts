@@ -133,9 +133,6 @@ export class Motor {
     }
   }
 
-  getDelayCommand(): MotorCommand {
-    return [MotorController.nextRequestId(), MotorCommands.MotorDelay, 0, 0, 50]
-  }
 
   getCutEndCommand(): MotorCommand | undefined {
     if (this.motorType === MotorType.CutterBottom) {
@@ -159,25 +156,45 @@ export class Motor {
     }
   }
 
-  getCutStartCommand(): MotorCommand | undefined {
+  getCutStartCommand(): [MotorCommand, MotorCommand] | undefined {
     if (this.motorType === MotorType.CutterBottom) {
-      return [
+      const command1: MotorCommand = [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
         135
       ]
-    } else if (this.motorType === MotorType.CutterTop) {
-      return [
+
+      const command2: MotorCommand = [
         MotorController.nextRequestId(),
-        MotorCommands.MotorCutMove,
+        MotorCommands.MotorDelay,
         this.controller.id,
         this.id,
-        124
+        50
       ]
-    } else {
-      return undefined
+      return [command1, command2]
+    } else if (this.motorType === MotorType.CutterTop) {
+      if (this.motorType === MotorType.CutterTop) {
+        const command1: MotorCommand = [
+          MotorController.nextRequestId(),
+          MotorCommands.MotorCutMove,
+          this.controller.id,
+          this.id,
+          125
+        ]
+
+        const command2: MotorCommand = [
+          MotorController.nextRequestId(),
+          MotorCommands.MotorDelay,
+          this.controller.id,
+          this.id,
+          50
+        ]
+        return [command1, command2]
+      } else {
+        return undefined
+      }
     }
   }
 
