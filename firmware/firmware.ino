@@ -16,7 +16,7 @@
 PersistentSettings SETTINGS;
 
 const char *FILIGREE_FILE_NAME = "filigree.txt";
-const chat *FILIGREE_STARTUP_FILE_NAME="filigree_startup.txt";
+const chat *FILIGREE_STARTUP_FILE_NAME = "filigree_startup.txt";
 
 uint32_t motor_get_type(int motor_id) {
   return static_cast<uint32_t>(SETTINGS.motorType[motor_id]);
@@ -91,7 +91,8 @@ void setup() {
     continue;
   }
 
-  if (SD.begin() && SD.exists(FILIGREE_FILE_NAME) && SD.exists(FILIGREE_STARTUP_FILE_NAME)) {
+  if (SD.begin() && SD.exists(FILIGREE_FILE_NAME) &&
+      SD.exists(FILIGREE_STARTUP_FILE_NAME)) {
     Log("Found filigree.txt. Working as master.");
     isMaster = true;
     filigreeFile = SD.open(FILIGREE_FILE_NAME);

@@ -133,7 +133,6 @@ export class Motor {
     }
   }
 
-
   getCutEndCommand(): MotorCommand | undefined {
     if (this.motorType === MotorType.CutterBottom) {
       return [
