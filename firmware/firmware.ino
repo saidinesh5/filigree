@@ -16,6 +16,7 @@
 PersistentSettings SETTINGS;
 
 const char *FILIGREE_FILE_NAME = "filigree.txt";
+const char *FILIGREE_STARTUP_FILE_NAME = "startup.txt";
 
 uint32_t motor_get_type(int motor_id) {
   return static_cast<uint32_t>(SETTINGS.motorType[motor_id]);
@@ -43,6 +44,7 @@ uint32_t motors_initalize() {
     return true;
   }
 }
+
 ///////////////////////////
 // Ethernet stuff
 // Configure with a manually assigned IP address
@@ -84,30 +86,54 @@ void setup() {
     continue;
   }
 
-  if (SD.begin() && SD.exists(FILIGREE_FILE_NAME)) {
-    Log("Found filigree.txt. Working as master.");
+  if (SD.begin() && SD.exists(FILIGREE_STARTUP_FILE_NAME) &&
+      SD.exists(FILIGREE_FILE_NAME)) {
+    Log("Found filigree.txt and filigree_startup.txt, Working as master.");
     isMaster = true;
-    filigreeFile = SD.open(FILIGREE_FILE_NAME);
+
     Ethernet.begin(server_mac, server_ip);
     Log("Assigned manual IP address: ");
-    delay(500);
+    delay(1000);
     slave.connect(server_ip, 8888);
+    delay(500);
     if (slave.connected()) {
       Log("connected");
     } else {
       Log("not connected");
     }
+
+    startup();
+
+    filigreeFile = SD.open(FILIGREE_FILE_NAME);
+
   } else {
     Log("Unable to fetch filigree.txt. Working as slave.");
     Ethernet.begin(client_mac, server_ip);
     server.begin();
-    delay(500);
+    delay(400);
   }
 
   attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
                   start_pause_button_callback, RISING);
 
   delay(100);
+}
+
+void startup() {
+  File startupFile;
+  startupFile = SD.open(FILIGREE_STARTUP_FILE_NAME);
+
+  while (startupFile.available()) {
+    String line = startupFile.readStringUntil('\n');
+    if (line.length() == 0 || line[0] == '#') {
+      continue;
+    } else {
+
+      Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
+    }
+  }
+
+  startupFile.close();
 }
 
 void loop() {
