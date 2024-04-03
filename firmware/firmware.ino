@@ -16,7 +16,7 @@
 PersistentSettings SETTINGS;
 
 const char *FILIGREE_FILE_NAME = "filigree.txt";
-const chat *FILIGREE_STARTUP_FILE_NAME = "filigree_startup.txt";
+const char *FILIGREE_STARTUP_FILE_NAME = "filigree_startup.txt";
 
 uint32_t motor_get_type(int motor_id) {
   return static_cast<uint32_t>(SETTINGS.motorType[motor_id]);

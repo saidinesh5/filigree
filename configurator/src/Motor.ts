@@ -162,7 +162,7 @@ export class Motor {
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        135
+        132.5
       ]
 
       const command2: MotorCommand = [
@@ -180,7 +180,7 @@ export class Motor {
           MotorCommands.MotorCutMove,
           this.controller.id,
           this.id,
-          125
+          126.5
         ]
 
         const command2: MotorCommand = [
