@@ -128,7 +128,6 @@ void startup() {
     if (line.length() == 0 || line[0] == '#') {
       continue;
     } else {
-      Serial.print(" loop");
 
       Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
     }
