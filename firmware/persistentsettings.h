@@ -64,7 +64,7 @@ void load_persistent_settings(PersistentSettings *settings) {
     settings->velocityLimit = 10000;      // 10,000 steps per sec
     settings->accelerationLimit = 100000; // 100000  // pulses per sec^2
     settings->resolution = 1600;
-    settings->cuttingVelocityLimit = 40000;       // 60000
+    settings->cuttingVelocityLimit = 50000;       // 60000
     settings->cuttingAccelerationLimit = 1500000; // 2000000
 
     settings->motorType[0] = static_cast<uint8_t>(MotorType::Default);

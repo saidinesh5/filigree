@@ -16,7 +16,7 @@
 
 #pragma once
 
-static bool isLogging = true;
+static bool isLogging = false;
 
 void Log(const char msg[]) {
   if (isLogging) {
