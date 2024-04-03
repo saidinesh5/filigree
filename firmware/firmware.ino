@@ -90,9 +90,9 @@ void setup() {
   while (!Serial && millis() - startTime < timeout) {
     continue;
   }
-  
-  if (SD.begin() 
-      && SD.exists(FILIGREE_STARTUP_FILE_NAME) && SD.exists(FILIGREE_FILE_NAME)) {
+
+  if (SD.begin() && SD.exists(FILIGREE_STARTUP_FILE_NAME) &&
+      SD.exists(FILIGREE_FILE_NAME)) {
     Log("Found filigree.txt and filigree_startup.txt, Working as master.");
     isMaster = true;
 
@@ -107,13 +107,9 @@ void setup() {
       Log("not connected");
     }
 
-
-
     startup();
 
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
-
-
 
   } else {
     Log("Unable to fetch filigree.txt. Working as slave.");
@@ -128,29 +124,22 @@ void setup() {
   delay(100);
 }
 
-void startup(){
-   File startupFile;
-   startupFile = SD.open(FILIGREE_STARTUP_FILE_NAME);
+void startup() {
+  File startupFile;
+  startupFile = SD.open(FILIGREE_STARTUP_FILE_NAME);
 
+  while (startupFile.available()) {
+    String line = startupFile.readStringUntil('\n');
+    if (line.length() == 0 || line[0] == '#') {
+      continue;
+    } else {
+      Serial.print(" loop");
 
-  while(startupFile.available()){
-   String line = startupFile.readStringUntil('\n');
-       if (line.length() == 0 || line[0] == '#') {
-        continue;
-       }
-        else{
-                   Serial.print(" loop");
-
-          Serial.println(createMessage(executeCommand(line), PARAM_COUNT));       
-        }
-
-
+      Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
+    }
   }
 
   startupFile.close();
-
-
-
 }
 
 void loop() {
