@@ -45,6 +45,11 @@ uint32_t motors_initalize() {
   }
 }
 
+uint32_t motors_wait(int del) {
+  delay(del);
+
+  return 0;
+}
 ///////////////////////////
 // Ethernet stuff
 // Configure with a manually assigned IP address
@@ -128,6 +133,7 @@ void startup() {
     if (line.length() == 0 || line[0] == '#') {
       continue;
     } else {
+      Serial.print(" loop");
 
       Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
     }
@@ -251,6 +257,11 @@ int *executeCommand(const String &line) {
   case static_cast<int>(Commands::MotorSetType): {
     res[PARAM_RESPONSE_RESULT] =
         motor_set_type(req[PARAM_MOTOR_ID], req[PARAM_COMMAND_PARAM]);
+    break;
+  }
+
+  case static_cast<int>(Commands::MotorDelay): {
+    res[PARAM_RESPONSE_RESULT] = motors_wait(req[PARAM_COMMAND_PARAM]);
     break;
   }
 
