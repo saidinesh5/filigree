@@ -79,9 +79,7 @@ bool isMaster = false; // SD card is not available
 volatile bool isRunning = true;
 /////////////////////////////////////////////////////////////////////////
 
-void start_pause_button_callback() {
-   isRunning = !isRunning; 
-   }
+void start_pause_button_callback() { isRunning = !isRunning; }
 
 void setup() {
   load_persistent_settings(&SETTINGS);
@@ -121,7 +119,7 @@ void setup() {
   }
 
   attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
-                  start_pause_button_callback, CHANGE);
+                  start_pause_button_callback, RISING);
 
   delay(100);
 }
@@ -143,7 +141,6 @@ void startup() {
 
   startupFile.close();
 }
-#define interruptConnector ConnectorDI6
 
 void loop() {
 
