@@ -26,15 +26,16 @@ enum class Commands {
   MotorCutMove = 6,
   MotorReset = 7,
   MotorGetType = 8,
-  MotorSetType = 9,
-  MotorSetVelocity = 10,
-  MotorGetVelocity = 11,
-  MotorSetAcceleration = 12,
-  MotorGetAcceleration = 13,
-  MotorSetCuttingAcceleration = 14,
-  MotorGetCuttingAcceration = 15,
-  MotorSetResolution = 16,
-  MotorGetResolution = 17
+  MotorGetVelocity = 9,
+  MotorGetAcceleration = 10,
+  MotorGetCuttingAcceration = 11,
+  MotorGetResolution = 12,
+  MotorSetType = 13,
+  MotorSetVelocity = 14,
+  MotorSetAcceleration = 15,
+  MotorSetCuttingAcceleration = 16,
+  MotorSetResolution = 17,
+  MotorDelay = 18
 
 };
 
