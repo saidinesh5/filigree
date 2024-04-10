@@ -155,25 +155,45 @@ export class Motor {
     }
   }
 
-  getCutStartCommand(): MotorCommand | undefined {
+  getCutStartCommand(): [MotorCommand, MotorCommand] | undefined {
     if (this.motorType === MotorType.CutterBottom) {
-      return [
+      const command1: MotorCommand = [
         MotorController.nextRequestId(),
         MotorCommands.MotorCutMove,
         this.controller.id,
         this.id,
-        139
+        132.5
       ]
+
+      const command2: MotorCommand = [
+        MotorController.nextRequestId(),
+        MotorCommands.MotorDelay,
+        this.controller.id,
+        this.id,
+        50
+      ]
+      return [command1, command2]
     } else if (this.motorType === MotorType.CutterTop) {
-      return [
-        MotorController.nextRequestId(),
-        MotorCommands.MotorCutMove,
-        this.controller.id,
-        this.id,
-        125
-      ]
-    } else {
-      return undefined
+      if (this.motorType === MotorType.CutterTop) {
+        const command1: MotorCommand = [
+          MotorController.nextRequestId(),
+          MotorCommands.MotorCutMove,
+          this.controller.id,
+          this.id,
+          126.5
+        ]
+
+        const command2: MotorCommand = [
+          MotorController.nextRequestId(),
+          MotorCommands.MotorDelay,
+          this.controller.id,
+          this.id,
+          50
+        ]
+        return [command1, command2]
+      } else {
+        return undefined
+      }
     }
   }
 
