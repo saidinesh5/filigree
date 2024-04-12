@@ -57,6 +57,8 @@ function describe(
       return `Get Motor type for motor: ${command[MessageParam.PARAM_REQUEST_ID]}`
     case MotorCommands.MotorSetType:
       return `Set Motor type for motor: ${command[MessageParam.PARAM_MOTOR_ID]} to ${motorDisplayIndex(motorControllers, command)}`
+    case MotorCommands.MotorDelay:
+      return `Delay of ${command[MessageParam.PARAM_COMMAND_ID]}`
     default:
       return '???'
   }
