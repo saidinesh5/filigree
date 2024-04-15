@@ -153,27 +153,38 @@ const App = () => {
 
   const sequencePlaybackLoop = async () => {
     if (isSequencePlayingRef.current) {
-      let i = currentSequenceIndex
+      let i = currentSequenceIndex;
       for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
         if (!isSequencePlayingRef.current) {
-          break
+          break;
         }
-        const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
-        try {
-          await motorControllers.current[controllerId].sendRequest(cmd)
-        } catch (err) {
-          console.error(err)
-          toast.error(`Error Playing back command: ${serializeCommand(cmd)}`)
+        const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID];
+        let success = false;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            await motorControllers.current[controllerId].sendRequest(cmd);
+            success = true; // Mark as success and exit the retry loop
+            break;
+          } catch (err) {
+            console.error(err);
+            if (attempt === 1) { // If it's the second attempt, display the error message
+              toast.error(`Error Playing back command: ${serializeCommand(cmd)}`);
+            }
+            await sleep(100); // Wait before retrying
+          }
         }
-        setCurrentSequenceIndex(i)
-        i++
-        await sleep(100)
+  
+        if (success) {
+          setCurrentSequenceIndex(i);
+          i++;
+        }
       }
-
-      isSequencePlayingRef.current = false
-      setIsSequencePlaying(false)
+  
+      isSequencePlayingRef.current = false;
+      setIsSequencePlaying(false);
     }
-  }
+  };
+  
 
   useEffect(() => {
     if (isSequencePlaying && !isSequencePlayingRef.current) {
