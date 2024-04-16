@@ -152,27 +152,44 @@ const App = () => {
   }
 
   const sequencePlaybackLoop = async () => {
-    if (isSequencePlayingRef.current) {
-      let i = currentSequenceIndex
-      for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
-        if (!isSequencePlayingRef.current) {
-          break
-        }
-        const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
+    if (!isSequencePlayingRef.current) return
+
+    let i = currentSequenceIndex
+    for await (let cmd of commandSequence.slice(currentSequenceIndex)) {
+      if (!isSequencePlayingRef.current) break
+
+      const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
+      const commandId = cmd[MessageParam.PARAM_COMMAND_ID]
+      // Set maxAttempts to 1 if commandId is 5 or 6, otherwise set to 2
+      const maxAttempts = commandId === 5 || commandId === 6 ? 1 : 2
+
+      let success = false
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
           await motorControllers.current[controllerId].sendRequest(cmd)
+          success = true
+          break // If request is successful, exit the retry loop
         } catch (err) {
           console.error(err)
-          toast.error(`Error Playing back command: ${serializeCommand(cmd)}`)
+          if (attempt === maxAttempts - 1) {
+            // On the last attempt, show error to the user
+            toast.error(`Error playing command: ${serializeCommand(cmd)}`)
+          }
+          if (attempt < maxAttempts - 1) {
+            // Only sleep if more attempts are left
+            await sleep(100) // Wait before retrying
+          }
         }
-        setCurrentSequenceIndex(i)
-        i++
-        await sleep(100)
       }
 
-      isSequencePlayingRef.current = false
-      setIsSequencePlaying(false)
+      if (success) {
+        setCurrentSequenceIndex(i)
+      }
+      i++
     }
+
+    isSequencePlayingRef.current = false
+    setIsSequencePlaying(false)
   }
 
   useEffect(() => {
