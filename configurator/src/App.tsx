@@ -160,8 +160,8 @@ const App = () => {
 
       const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
       const commandId = cmd[MessageParam.PARAM_COMMAND_ID]
-      // Set maxAttempts to 1 if commandId is 5 or 6, otherwise set to 2
-      const maxAttempts = commandId === 5 || commandId === 6 ? 1 : 2
+      // Set maxAttempts to 1 if commandId is MotorRelativeMove, otherwise set to 2
+      const maxAttempts = commandId === MotorCommands.MotorRelativeMove ?  1 : 2; // 1 attempt for MotorRelativeMove,  2 for others
 
       let success = false
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -171,10 +171,7 @@ const App = () => {
           break // If request is successful, exit the retry loop
         } catch (err) {
           console.error(err)
-          if (attempt === maxAttempts - 1) {
-            // On the last attempt, show error to the user
-            toast.error(`Error playing command: ${serializeCommand(cmd)}`)
-          }
+
           if (attempt < maxAttempts - 1) {
             // Only sleep if more attempts are left
             await sleep(100) // Wait before retrying
@@ -182,9 +179,13 @@ const App = () => {
         }
       }
 
-      if (success) {
-        setCurrentSequenceIndex(i)
+      if(!success){
+        setIsSequencePlaying(false)
+        toast.error(`Error playing command: ${serializeCommand(cmd)}`)
+        break //if it is dont sucessful in the second attempt as well, exit 
       }
+
+      setCurrentSequenceIndex(i)
       i++
     }
 
