@@ -121,7 +121,7 @@ const App = () => {
     for (let motor of motors) {
       let cmd = motor.getCutStartCommand()
       if (cmd) {
-        newCommands.push(...cmd)
+        newCommands.push(cmd)
       }
     }
 
@@ -161,7 +161,7 @@ const App = () => {
       const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
       const commandId = cmd[MessageParam.PARAM_COMMAND_ID]
       // Set maxAttempts to 1 if commandId is MotorRelativeMove, otherwise set to 2
-      const maxAttempts = commandId === MotorCommands.MotorRelativeMove ?  1 : 2; // 1 attempt for MotorRelativeMove,  2 for others
+      const maxAttempts = commandId === MotorCommands.MotorRelativeMove ? 1 : 2 // 1 attempt for MotorRelativeMove,  2 for others
 
       let success = false
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -179,10 +179,10 @@ const App = () => {
         }
       }
 
-      if(!success){
+      if (!success) {
         setIsSequencePlaying(false)
         toast.error(`Error playing command: ${serializeCommand(cmd)}`)
-        break //if it is dont sucessful in the second attempt as well, exit 
+        break //if it is dont sucessful in the second attempt as well, exit
       }
 
       setCurrentSequenceIndex(i)
