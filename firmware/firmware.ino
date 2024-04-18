@@ -32,6 +32,12 @@ uint32_t motor_set_type(int motor_id, int Type) {
 }
 
 uint8_t isMotorInitialized = false;
+uint32_t motor_disable(int motor_id) {
+  MotorDriver *motor = motors[motor_id];
+  motor->EnableRequest(false);
+
+  return motor->AlertReg().reg;
+}
 uint32_t motors_initalize() {
   if (isMotorInitialized) {
     return false;
@@ -44,6 +50,15 @@ uint32_t motors_initalize() {
     }
     return true;
   }
+}
+
+uint32_t motors_disable() {
+  for (int motor_id = 0; motor_id < motor_count(); motor_id++) {
+    motor_disable(motor_id);
+  }
+  isMotorInitialized = false;
+
+  return true;
 }
 
 uint32_t motors_wait(int del) {
@@ -328,6 +343,11 @@ int *executeCommand(const String &line) {
 
   case static_cast<int>(Commands::MotorDelay): {
     res[PARAM_RESPONSE_RESULT] = motors_wait(req[PARAM_COMMAND_PARAM]);
+    break;
+  }
+
+  case static_cast<int>(Commands::MotorsDisable): {
+    res[PARAM_RESPONSE_RESULT] = motors_disable();
     break;
   }
 

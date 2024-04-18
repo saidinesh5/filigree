@@ -84,6 +84,13 @@ uint32_t motor_angle() {
   return angle;
 }
 
+uint32_t motor_disable(int motor_id) {
+  MotorDriver *motor = motors[motor_id];
+  motor->EnableRequest(false);
+
+  return motor->AlertReg().reg;
+}
+
 uint32_t motor_reset(int motor_id) {
   MotorDriver *motor = motors[motor_id];
   motor->HlfbMode(
