@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #define RED_LIGHT IO0
 #define ORANGE_LIGHT IO1
 #define GREEN_LIGHT IO2
@@ -8,7 +10,9 @@ void tower_lamp_init() {
   pinMode(GREEN_LIGHT, OUTPUT);
 }
 
-void reset_indication(uint32_t color) { digitalWrite(color, false); }
+
+
+void reset_indication(uint32_t color) { digitalWrite(color, LOW); }
 
 void set_indication(uint32_t color) {
   switch (color) {
@@ -31,5 +35,5 @@ void set_indication(uint32_t color) {
   default:
     break;
   }
-  digitalWrite(color, true);
+  digitalWrite(color, HIGH);
 }

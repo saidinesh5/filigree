@@ -153,7 +153,6 @@ void startup() {
     if (line.length() == 0 || line[0] == '#') {
       continue;
     } else {
-      Serial.print(" loop");
 
       Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
     }
@@ -173,7 +172,7 @@ void loop() {
       return;
     } else if (digitalRead(doorStatusPin) == 0) {
       // if(!isDoorClosed){
-      digitalWrite(ORANGE_LIGHT, true);
+      digitalWrite(ORANGE_LIGHT, HIGH);
       callback_startup = true;
       return;
     } else if (callback_startup) {
