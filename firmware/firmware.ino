@@ -6,6 +6,7 @@
 #include "log.h"
 #include "message.h"
 #include "persistentsettings.h"
+#include "tower_lamp_indication.h"
 
 #ifndef SIMULATOR
 #include "motor.h"
@@ -72,16 +73,33 @@ EthernetClient slave;
 #else
 #define start_pause_button_pin A1
 #endif
+#define doorStatusPin DI7
 
 //////////////////////////////////////////////////////////////////
 File filigreeFile;
 bool isMaster = false; // SD card is not available
-volatile bool isRunning = true;
+bool callback_startup = false;
+volatile bool isRunning = false;
+volatile bool isDoorClosed = false;
 /////////////////////////////////////////////////////////////////////////
 
 void start_pause_button_callback() { isRunning = !isRunning; }
+void doorStatusPin_callback() {
+  if (isRunning) {
+    if (digitalRead(doorStatusPin) == 0)
+      isDoorClosed = false;
+    else
+      isDoorClosed = true;
+  }
+}
 
 void setup() {
+  tower_lamp_init();
+  pinMode(doorStatusPin, INPUT);
+  attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
+                  start_pause_button_callback, RISING);
+  // attachInterrupt(digitalPinToInterrupt(doorStatusPin),
+  //                 doorStatusPin_callback, RISING);
   load_persistent_settings(&SETTINGS);
   motor_setup();
   Serial.begin(57600, SERIAL_8N1);
@@ -90,7 +108,6 @@ void setup() {
   while (!Serial && millis() - startTime < timeout) {
     continue;
   }
-
   if (SD.begin() && SD.exists(FILIGREE_STARTUP_FILE_NAME) &&
       SD.exists(FILIGREE_FILE_NAME)) {
     Log("Found filigree.txt and filigree_startup.txt, Working as master.");
@@ -107,10 +124,6 @@ void setup() {
       Log("not connected");
     }
 
-    startup();
-
-    filigreeFile = SD.open(FILIGREE_FILE_NAME);
-
   } else {
     Log("Unable to fetch filigree.txt. Working as slave.");
     Ethernet.begin(client_mac, server_ip);
@@ -118,8 +131,15 @@ void setup() {
     delay(400);
   }
 
-  attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
-                  start_pause_button_callback, RISING);
+  if (isMaster) {
+    while (!isRunning) {
+      set_indication(RED_LIGHT);
+    }
+    set_indication(GREEN_LIGHT);
+    startup();
+
+    filigreeFile = SD.open(FILIGREE_FILE_NAME);
+  }
 
   delay(100);
 }
@@ -138,19 +158,29 @@ void startup() {
       Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
     }
   }
-
   startupFile.close();
+
+  callback_startup = false;
 }
 
 void loop() {
-
-  if (!isRunning)
-    return;
-
-  if (isMaster) {                    // this will contain client code
-    if (!filigreeFile.available()) { // for looping to work
+  if (isMaster) {                  // this will contain client code
+    if (!filigreeFile.available()) // for looping to work
       filigreeFile.seek(0);
-    }
+    if (!isRunning) {
+      set_indication(RED_LIGHT);
+      callback_startup = true;
+      return;
+    } else if (digitalRead(doorStatusPin) == 0) {
+      // if(!isDoorClosed){
+      digitalWrite(ORANGE_LIGHT, true);
+      callback_startup = true;
+      return;
+    } else if (callback_startup) {
+      startup();
+      filigreeFile.seek(0);
+    } else
+      set_indication(GREEN_LIGHT);
 
     String line = filigreeFile.readStringUntil('\n');
     if (line.length() == 0 || line[0] == '#') {
