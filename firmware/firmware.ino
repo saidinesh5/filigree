@@ -32,12 +32,6 @@ uint32_t motor_set_type(int motor_id, int Type) {
 }
 
 uint8_t isMotorInitialized = false;
-uint32_t motor_disable(int motor_id) {
-  MotorDriver *motor = motors[motor_id];
-  motor->EnableRequest(false);
-
-  return motor->AlertReg().reg;
-}
 uint32_t motors_initalize() {
   if (isMotorInitialized) {
     return false;
@@ -90,6 +84,7 @@ EthernetClient slave;
 #endif
 #define doorStatusPin DI7
 
+#define emergency_button DI8
 //////////////////////////////////////////////////////////////////
 File filigreeFile;
 bool isMaster = false; // SD card is not available
@@ -136,12 +131,35 @@ void doorStatusPin_callback() {
   }
 }
 
+void emergency_callback() {
+  if (digitalRead(emergency_button) == false) {
+    motors_disable();
+    isRunning = false;
+    int disable[] = {0, 0, 0, 0, 0};
+    disable[PARAM_COMMAND_ID] = 19;
+    disable[PARAM_CONTROLLER_ID] = 1;
+
+    String line = createMessage(disable, PARAM_COUNT);
+
+    Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
+
+  }
+
+  else if (digitalRead(emergency_button) == true) {
+    isRunning = true;
+  }
+}
+
 void setup() {
   tower_lamp_init();
   //  pinMode(doorStatusPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
                   start_pause_button_callback, RISING);
   attachInterrupt(digitalPinToInterrupt(doorStatusPin), doorStatusPin_callback,
+                  CHANGE);
+
+  
+  attachInterrupt(digitalPinToInterrupt(emergency_button), emergency_callback,
                   CHANGE);
   load_persistent_settings(&SETTINGS);
   motor_setup();
@@ -186,6 +204,7 @@ void setup() {
     startup();
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
   }
+
   delay(100);
 }
 
