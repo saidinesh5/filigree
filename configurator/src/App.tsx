@@ -159,14 +159,36 @@ const App = () => {
           break
         }
         const controllerId = cmd[MessageParam.PARAM_CONTROLLER_ID]
-        try {
-          await motorControllers.current[controllerId].sendRequest(cmd)
-        } catch (err) {
-          console.error(err)
-          toast.error(`Error Playing back command: ${serializeCommand(cmd)}`)
+        let retryCount =
+          cmd[MessageParam.PARAM_COMMAND_ID] !== MotorCommands.MotorRelativeMove
+            ? 3
+            : 1
+        let commandSucceeded = false
+
+        while (retryCount > 0) {
+          try {
+            await motorControllers.current[controllerId].sendRequest(cmd)
+            commandSucceeded = true
+            break
+          } catch (err) {
+            console.error(
+              `Error Playing back command: ${i} - ${serializeCommand(cmd)}. Retrying...`
+            )
+            retryCount--
+            await sleep(100)
+          }
         }
-        setCurrentSequenceIndex(i)
-        i++
+
+        if (commandSucceeded) {
+          setCurrentSequenceIndex(i)
+          i++
+        } else {
+          toast.error(
+            `Error Playing back command: ${i} - ${serializeCommand(cmd)}`
+          )
+          break
+        }
+
         await sleep(100)
       }
 
