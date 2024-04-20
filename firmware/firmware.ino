@@ -81,25 +81,53 @@ bool isMaster = false; // SD card is not available
 bool callback_startup = false;
 volatile bool isRunning = false;
 volatile bool isDoorClosed = false;
+uint16_t interrupt_count = 0;
+uint16_t buttonCount = 0;
+int lastButtonState = 1;
+int lastDebounceTime = 0;
+int lastDebounce_Time = 0;
+int DebounceDelay = 50;
 /////////////////////////////////////////////////////////////////////////
 
-void start_pause_button_callback() { isRunning = !isRunning; }
+void start_pause_button_callback() {
+  int buttonState = digitalRead(start_pause_button_pin);
+  if (buttonState != lastButtonState &&
+      millis() - lastDebounceTime > DebounceDelay) {
+    lastDebounceTime = millis();
+    if (buttonState == 0) {
+      buttonCount++;
+      isRunning = !isRunning;
+    }
+  }
+}
 void doorStatusPin_callback() {
-  if (isRunning) {
-    if (digitalRead(doorStatusPin) == 0)
-      isDoorClosed = false;
-    else
-      isDoorClosed = true;
+  // if(isRunning){
+  // interrupt_count++;
+  // delay(10);
+  // if(digitalRead(doorStatusPin) == 0)
+  //   isDoorClosed = false;
+  // else
+  //   isDoorClosed = true;
+  // }
+  int currentState = digitalRead(doorStatusPin);
+
+  // Check if enough time has passed since last debounce
+  if (millis() - lastDebounce_Time > DebounceDelay) {
+    // Record the time of the state change
+    lastDebounceTime = millis();
+
+    // Update the global variable with the new state
+    isDoorClosed = !currentState;
   }
 }
 
 void setup() {
   tower_lamp_init();
-  pinMode(doorStatusPin, INPUT);
+  //  pinMode(doorStatusPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
                   start_pause_button_callback, RISING);
-  // attachInterrupt(digitalPinToInterrupt(doorStatusPin),
-  //                 doorStatusPin_callback, RISING);
+  attachInterrupt(digitalPinToInterrupt(doorStatusPin), doorStatusPin_callback,
+                  CHANGE);
   load_persistent_settings(&SETTINGS);
   motor_setup();
   Serial.begin(57600, SERIAL_8N1);
@@ -135,12 +163,14 @@ void setup() {
     while (!isRunning) {
       set_indication(RED_LIGHT);
     }
+    if (digitalRead(doorStatusPin) == 0)
+      isDoorClosed = false;
+    else
+      isDoorClosed = true;
     set_indication(GREEN_LIGHT);
     startup();
-
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
   }
-
   delay(100);
 }
 
@@ -153,6 +183,7 @@ void startup() {
     if (line.length() == 0 || line[0] == '#') {
       continue;
     } else {
+      Serial.print(" loop");
 
       Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
     }
@@ -168,19 +199,25 @@ void loop() {
       filigreeFile.seek(0);
     if (!isRunning) {
       set_indication(RED_LIGHT);
+      Serial.print("Motor is Stopped Count::");
+      Serial.println(buttonCount);
       callback_startup = true;
       return;
-    } else if (digitalRead(doorStatusPin) == 0) {
-      // if(!isDoorClosed){
-      digitalWrite(ORANGE_LIGHT, HIGH);
+    }
+    //    else if (digitalRead(doorStatusPin) == 0){
+    else if (!isDoorClosed && isRunning) {
+      set_indication(ORANGE_LIGHT);
+      Serial.print("Door is opened Count::");
+      Serial.println(interrupt_count);
+
       callback_startup = true;
       return;
     } else if (callback_startup) {
       startup();
       filigreeFile.seek(0);
-    } else
+    } else {
       set_indication(GREEN_LIGHT);
-
+    }
     String line = filigreeFile.readStringUntil('\n');
     if (line.length() == 0 || line[0] == '#') {
       return;
