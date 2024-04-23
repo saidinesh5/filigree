@@ -87,7 +87,6 @@ uint32_t motor_angle() {
 uint32_t motor_disable(int motor_id) {
   MotorDriver *motor = motors[motor_id];
   motor->EnableRequest(false);
-
   return motor->AlertReg().reg;
 }
 

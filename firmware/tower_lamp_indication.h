@@ -1,35 +1,35 @@
 #include <Arduino.h>
 
-#define RED_LIGHT IO0
-#define ORANGE_LIGHT IO1
-#define GREEN_LIGHT IO2
+#define tower_red_light IO0
+#define tower_orange_light IO1
+#define tower_green_light IO2
+#define button_green_light IO3
 
 void tower_lamp_init() {
-  pinMode(RED_LIGHT, OUTPUT);
-  pinMode(ORANGE_LIGHT, OUTPUT);
-  pinMode(GREEN_LIGHT, OUTPUT);
+  pinMode(tower_red_light, OUTPUT);
+  pinMode(tower_orange_light, OUTPUT);
+  pinMode(tower_green_light, OUTPUT);
+  pinMode(button_green_light, OUTPUT);
 }
-
-
 
 void reset_indication(uint32_t color) { digitalWrite(color, LOW); }
 
 void set_indication(uint32_t color) {
   switch (color) {
-  case RED_LIGHT:
-    reset_indication(ORANGE_LIGHT);
-    reset_indication(GREEN_LIGHT);
+  case tower_red_light:
+    reset_indication(tower_orange_light);
+    reset_indication(tower_green_light);
     break;
 
-  case ORANGE_LIGHT:
-    reset_indication(GREEN_LIGHT);
-    reset_indication(RED_LIGHT);
+  case tower_orange_light:
+    reset_indication(tower_green_light);
+    reset_indication(tower_red_light);
 
     break;
 
-  case GREEN_LIGHT:
-    reset_indication(RED_LIGHT);
-    reset_indication(ORANGE_LIGHT);
+  case tower_green_light:
+    reset_indication(tower_red_light);
+    reset_indication(tower_orange_light);
 
     break;
   default:
