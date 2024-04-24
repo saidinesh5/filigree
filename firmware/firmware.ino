@@ -147,44 +147,6 @@ void emergency_callback() {
   }
 }
 
-#define tower_red_light IO0
-#define tower_orange_light IO1
-#define tower_green_light IO2
-#define button_green_light IO3
-
-void tower_lamp_init() {
-  pinMode(tower_red_light, OUTPUT);
-  pinMode(tower_orange_light, OUTPUT);
-  pinMode(tower_green_light, OUTPUT);
-  pinMode(button_green_light, OUTPUT);
-}
-
-void reset_indication(uint32_t color) { digitalWrite(color, LOW); }
-
-void set_indication(uint32_t color) {
-  switch (color) {
-  case tower_red_light:
-    reset_indication(tower_orange_light);
-    reset_indication(tower_green_light);
-    break;
-
-  case tower_orange_light:
-    reset_indication(tower_green_light);
-    reset_indication(tower_red_light);
-
-    break;
-
-  case tower_green_light:
-    reset_indication(tower_red_light);
-    reset_indication(tower_orange_light);
-
-    break;
-  default:
-    break;
-  }
-  digitalWrite(color, HIGH);
-}
-
 void setup() {
   load_persistent_settings(&SETTINGS);
   motor_setup();
@@ -218,7 +180,6 @@ void setup() {
   }
 
   if (isMaster) {
-    tower_lamp_init();
     attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
                     start_pause_button_callback, RISING);
     attachInterrupt(digitalPinToInterrupt(door_open_close_pin),
@@ -231,18 +192,14 @@ void setup() {
     if (digitalRead(emergency_button_pin) == false) {
       isEmergency = !digitalRead(emergency_button_pin);
       while (isEmergency) {
-        set_indication(tower_red_light);
       }
     }
     while (!isRunning) {
-      set_indication(tower_orange_light);
     }
-    set_indication(button_green_light);
     isDoorClosed = (digitalRead(door_open_close_pin) != 0);
     isFilamentPresent = (digitalRead(filament_sensor_pin) != 0);
 
     if (isDoorClosed && isFilamentPresent) {
-      set_indication(tower_green_light);
       startup();
     }
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
@@ -276,7 +233,6 @@ void startup() {
 void loop() {
   if (isMaster) {
     if (isEmergency) {
-      set_indication(tower_red_light);
       if (isEmergencyTriggered) {
         Serial.println(
             createMessage(executeCommand("0,19,1,0,0"), PARAM_COUNT));
@@ -289,7 +245,6 @@ void loop() {
     }
     if ((!isDoorClosed && isRunning) || (!isRunning) ||
         (!isFilamentPresent && isRunning)) {
-      set_indication(tower_orange_light);
       isStartupRequired = true;
       return;
     }
@@ -300,7 +255,6 @@ void loop() {
       filigreeFile.seek(0);
     }
 
-    set_indication(tower_green_light);
     if (!filigreeFile.available()) // for looping to work
       filigreeFile.seek(0);
 
