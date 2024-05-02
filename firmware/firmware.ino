@@ -94,6 +94,7 @@ volatile bool isIntialized = false;
 volatile bool isEmergencyTriggered = false;
 volatile bool isFilamentPresent = false;
 volatile bool isButton = false;
+volatile bool isEmergencyState = false;
 volatile uint8_t lastButtonState = 1;
 volatile uint32_t lastDebounceTime_button = 0;
 volatile uint32_t lastDebounceTime_sensor = 0;
@@ -112,12 +113,15 @@ void start_pause_button_callback() {
       isButton = !isButton;
     }
   }
-  if (!isButton) {
+  if (!isButton && !isEmergencyState) {
     isRunning = false;
     // notify pause
   } else {
-    if (!isEmergencyTriggered && isFilamentPresent && !isDoorOpened)
+    if (!isEmergencyState && isFilamentPresent && !isDoorOpened) {
+      // notify running
       isRunning = true;
+      isStartupRequired = true;
+    }
   }
 }
 
@@ -130,15 +134,18 @@ void door_open_close_callback() {
     // Record the time of the state change
     lastDebounceTime_sensor = millis();
 
+    // Update the global variable with the new state
     isDoorOpened = currentState;
   }
-  if (isDoorOpened) {
-    // notify door opened
+  if (isDoorOpened && !isEmergencyState) {
     isRunning = false;
-
+    // notify door opened
   } else {
-    if (!isEmergencyTriggered && isFilamentPresent && isButton)
+    if (!isEmergencyState && isFilamentPresent && isButton) {
+      // notify running
       isRunning = true;
+      isStartupRequired = true;
+    }
   }
 }
 
@@ -149,21 +156,23 @@ void filament_callback() {
   if (millis() - lastDebounceTime_sensor > DebounceDelay) { // debounce
     lastDebounceTime_sensor = millis();
 
-    // isRunning = !currentState;
     isFilamentPresent = !currentState;
-    // orange tower blink
   }
 
-  if (!isFilamentPresent) {
-    // notify filament over
+  if (!isFilamentPresent && !isEmergencyState) {
     isRunning = false;
+    // notify filament over
   } else {
-    if (!isEmergencyTriggered && isButton && !isDoorOpened)
+    if (!isEmergencyState && isButton && !isDoorOpened) {
+      // notify running
       isRunning = true;
+      isStartupRequired = true;
+    }
   }
 }
 void emergency_callback() {
   uint8_t currentState = digitalRead(emergency_button_pin);
+  isEmergencyState = true;
   // notify emergency
   if (millis() - lastDebounceTime_emr > DebounceDelay) { // debounce
     lastDebounceTime_emr = millis();
@@ -177,7 +186,6 @@ void emergency_callback() {
 
 void setup() {
 
-  // notify notification initialisation
   load_persistent_settings(&SETTINGS);
   motor_setup();
   Serial.begin(57600, SERIAL_8N1);
@@ -220,22 +228,25 @@ void setup() {
                     emergency_callback, CHANGE);
 
     while (!digitalRead(emergency_button_pin)) {
+      Log("emergency");
       // notify emergency
+      isEmergencyState = true;
     }
 
     while (!isButton) {
-
+      Log("inital");
       if (isEmergencyTriggered) {
-        // notify emergency
-      } else {
-        // notify initial condition
+        // notify is emergency
       }
 
-      if (!digitalRead(door_open_close_pin)) {
-        isDoorOpened = true;
-      } else {
-        isDoorOpened = false;
-      }
+      else
+        // notify initial condition
+
+        if (!digitalRead(door_open_close_pin)) {
+          isDoorOpened = true;
+        } else {
+          isDoorOpened = false;
+        }
 
       if (digitalRead(filament_sensor_pin)) {
         isFilamentPresent = true;
@@ -244,11 +255,12 @@ void setup() {
       }
     }
 
-    if (!isDoorOpened && isFilamentPresent) {
-      // call tower light green
+    if (!isDoorOpened && isFilamentPresent && !isEmergencyState) {
+      Log("playing startup...");
       // notify running
       startup();
     }
+
     filigreeFile = SD.open(FILIGREE_FILE_NAME);
   }
 
@@ -259,7 +271,7 @@ void startup() {
   File startupFile = SD.open(FILIGREE_STARTUP_FILE_NAME);
 
   while (startupFile.available()) {
-    if (isEmergencyTriggered) {
+    if (isEmergencyState || !isRunning) {
       break;
     }
     String line = startupFile.readStringUntil('\n');
@@ -282,8 +294,7 @@ void loop() {
 
       Serial.println(createMessage(executeCommand("0,19,1,0,0"), PARAM_COUNT));
 
-      Serial.println(createMessage(executeCommand("0,19,0,0,0"), PARAM_COUNT));
-
+      motors_disable();
       isEmergencyTriggered = false;
       isRunning = false;
 
@@ -291,14 +302,11 @@ void loop() {
     }
 
     if (!isRunning) {
-      Serial.println(isStartupRequired);
-      isStartupRequired = true;
       return;
     }
 
     if (isStartupRequired) {
       isStartupRequired = false;
-      // notify running
       startup();
       filigreeFile.seek(0);
     }

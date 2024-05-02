@@ -15,7 +15,6 @@
 */
 
 #pragma once
-
 static bool isLogging = false;
 
 void Log(const char msg[]) {
