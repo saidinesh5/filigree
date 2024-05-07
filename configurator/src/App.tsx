@@ -126,7 +126,14 @@ const App = () => {
     }
 
     for (let motor of motors) {
-      let cmd = motor.getCutEndCommand()
+      let cmd = motor.getCutEndTopCommand()
+      if (cmd) {
+        newCommands.push(cmd)
+      }
+    }
+
+    for (let motor of motors) {
+      let cmd = motor.getCutEndBottonCommand()
       if (cmd) {
         newCommands.push(cmd)
       }

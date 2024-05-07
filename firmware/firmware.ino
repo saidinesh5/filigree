@@ -7,15 +7,22 @@
 #include "message.h"
 #include "persistentsettings.h"
 
+#include "notificationsmanager.h"
+
 #ifndef SIMULATOR
 #include "motor.h"
 #else
 #include "simulatedmotor.h"
 #endif
 
+Notification notify;
 PersistentSettings SETTINGS;
 const char *FILIGREE_FILE_NAME = "filigree.txt";
 const char *FILIGREE_STARTUP_FILE_NAME = "startup.txt";
+
+const char *FILIGREE_FILE_1 = "fili1.txt";
+const char *FILIGREE_PLAY;
+const char *FILIGREE_FILES[3] = {"fili2.txt", "fili3.txt", "fili1.txt"};
 
 uint32_t motor_get_type(int motor_id) {
   return static_cast<uint32_t>(SETTINGS.motorType[motor_id]);
@@ -29,6 +36,20 @@ uint32_t motor_set_type(int motor_id, int Type) {
     save_persistent_settings(SETTINGS);
   }
 }
+
+uint32_t set_velocity(uint32_t velocity) {
+  SETTINGS.velocityLimit = velocity;
+  save_persistent_settings(SETTINGS);
+}
+
+uint32_t get_velocity() { return SETTINGS.velocityLimit; }
+
+uint32_t set_acceleration(uint32_t acceleration) {
+  SETTINGS.accelerationLimit = acceleration;
+  save_persistent_settings(SETTINGS);
+}
+
+uint32_t get_accleration() { return SETTINGS.accelerationLimit; }
 
 uint8_t isMotorInitialized = false;
 uint32_t motors_initalize() {
@@ -82,6 +103,8 @@ EthernetClient slave;
 #define door_open_close_pin DI7
 #define emergency_button_pin DI8
 #define filament_sensor_pin A9
+#define file_selector_pin_1 A10
+#define file_selector_pin_2 A11
 
 //////////////////////////////////////////////////////////////////
 File filigreeFile;
@@ -115,10 +138,10 @@ void start_pause_button_callback() {
   }
   if (!isButton && !isEmergencyState) {
     isRunning = false;
-    // notify pause
+    notify.show(notify.pause);
   } else {
     if (!isEmergencyState && isFilamentPresent && !isDoorOpened) {
-      // notify running
+      notify.show(notify.running);
       isRunning = true;
       isStartupRequired = true;
     }
@@ -136,13 +159,17 @@ void door_open_close_callback() {
 
     // Update the global variable with the new state
     isDoorOpened = currentState;
+    // if current state is 0 then it means that sensir is away. ie when when it
+    // is far logic is zero which means that when sensor is far is running
+    // should zero
   }
   if (isDoorOpened && !isEmergencyState) {
+    notify.show(notify.doorOpened);
     isRunning = false;
-    // notify door opened
+
   } else {
     if (!isEmergencyState && isFilamentPresent && isButton) {
-      // notify running
+      notify.show(notify.running);
       isRunning = true;
       isStartupRequired = true;
     }
@@ -156,15 +183,17 @@ void filament_callback() {
   if (millis() - lastDebounceTime_sensor > DebounceDelay) { // debounce
     lastDebounceTime_sensor = millis();
 
+    // isRunning = !currentState;
     isFilamentPresent = !currentState;
+    // orange tower blink
   }
 
   if (!isFilamentPresent && !isEmergencyState) {
+    notify.show(notify.filamentOver);
     isRunning = false;
-    // notify filament over
   } else {
     if (!isEmergencyState && isButton && !isDoorOpened) {
-      // notify running
+      notify.show(notify.running);
       isRunning = true;
       isStartupRequired = true;
     }
@@ -173,7 +202,7 @@ void filament_callback() {
 void emergency_callback() {
   uint8_t currentState = digitalRead(emergency_button_pin);
   isEmergencyState = true;
-  // notify emergency
+  notify.show(notify.emergency);
   if (millis() - lastDebounceTime_emr > DebounceDelay) { // debounce
     lastDebounceTime_emr = millis();
 
@@ -184,18 +213,25 @@ void emergency_callback() {
   }
 }
 
+void file_selector_reset_callack() {
+
+  SysMgr.ResetBoard(); // restarts board
+}
+
 void setup() {
 
+  notify.notification_init();
   load_persistent_settings(&SETTINGS);
   motor_setup();
-  Serial.begin(57600, SERIAL_8N1);
+  Serial.begin(115200, SERIAL_8N1);
   uint32_t timeout = 100;
   uint32_t startTime = millis();
   while (!Serial && millis() - startTime < timeout) {
     continue;
   }
   if (SD.begin() && SD.exists(FILIGREE_STARTUP_FILE_NAME) &&
-      SD.exists(FILIGREE_FILE_NAME)) {
+      SD.exists(FILIGREE_FILE_NAME) && SD.exists(FILIGREE_FILES[0]) &&
+      SD.exists(FILIGREE_FILES[1]) && SD.exists(FILIGREE_FILES[2])) {
     Log("Found filigree.txt and filigree_startup.txt, Working as master.");
     isMaster = true;
 
@@ -227,26 +263,31 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(emergency_button_pin),
                     emergency_callback, CHANGE);
 
+    attachInterrupt(digitalPinToInterrupt(file_selector_pin_1),
+                    file_selector_reset_callack, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(file_selector_pin_2),
+                    file_selector_reset_callack, CHANGE);
+
     while (!digitalRead(emergency_button_pin)) {
       Log("emergency");
-      // notify emergency
+      notify.show(notify.emergency);
       isEmergencyState = true;
     }
 
     while (!isButton) {
       Log("inital");
       if (isEmergencyTriggered) {
-        // notify is emergency
+        notify.show(notify.emergency);
       }
 
       else
-        // notify initial condition
+        notify.show(notify.initialCondition);
 
-        if (!digitalRead(door_open_close_pin)) {
-          isDoorOpened = true;
-        } else {
-          isDoorOpened = false;
-        }
+      if (!digitalRead(door_open_close_pin)) {
+        isDoorOpened = true;
+      } else {
+        isDoorOpened = false;
+      }
 
       if (digitalRead(filament_sensor_pin)) {
         isFilamentPresent = true;
@@ -257,11 +298,15 @@ void setup() {
 
     if (!isDoorOpened && isFilamentPresent && !isEmergencyState) {
       Log("playing startup...");
-      // notify running
+      // call tower light green
+      notify.show(notify.running);
       startup();
     }
+    uint8_t file_bit_1 = digitalRead(file_selector_pin_1) << 1;
+    uint8_t file_bit_2 = digitalRead(file_selector_pin_2);
 
-    filigreeFile = SD.open(FILIGREE_FILE_NAME);
+    FILIGREE_PLAY = FILIGREE_FILES[(file_bit_1 + file_bit_2)];
+    filigreeFile = SD.open(FILIGREE_PLAY);
   }
 
   delay(100);
@@ -271,7 +316,7 @@ void startup() {
   File startupFile = SD.open(FILIGREE_STARTUP_FILE_NAME);
 
   while (startupFile.available()) {
-    if (isEmergencyState || !isRunning) {
+    if (isEmergencyTriggered || !isRunning) {
       break;
     }
     String line = startupFile.readStringUntil('\n');
@@ -291,6 +336,7 @@ void loop() {
 
   if (isMaster) {
     if (isEmergencyTriggered) {
+      Serial.println(isEmergencyTriggered);
 
       Serial.println(createMessage(executeCommand("0,19,1,0,0"), PARAM_COUNT));
 
@@ -332,6 +378,7 @@ void loop() {
     }
     Serial.flush();
   }
+  // motors_wait(1);
 }
 
 int *executeCommand(const String &line) {
@@ -418,6 +465,26 @@ int *executeCommand(const String &line) {
   case static_cast<int>(Commands::MotorSetType): {
     res[PARAM_RESPONSE_RESULT] =
         motor_set_type(req[PARAM_MOTOR_ID], req[PARAM_COMMAND_PARAM]);
+    break;
+  }
+
+  case static_cast<int>(Commands::MotorGetVelocity): {
+    res[PARAM_RESPONSE_RESULT] = get_velocity();
+    break;
+  }
+
+  case static_cast<int>(Commands::MotorSetVelocity): {
+    res[PARAM_RESPONSE_RESULT] = set_velocity(req[PARAM_COMMAND_PARAM]);
+    break;
+  }
+
+  case static_cast<int>(Commands::MotorGetAcceleration): {
+    res[PARAM_RESPONSE_RESULT] = get_accleration();
+    break;
+  }
+
+  case static_cast<int>(Commands::MotorSetAcceleration): {
+    res[PARAM_RESPONSE_RESULT] = set_acceleration(req[PARAM_COMMAND_PARAM]);
     break;
   }
 
