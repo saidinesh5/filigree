@@ -8,6 +8,7 @@
 #include "persistentsettings.h"
 
 #include "notificationsmanager.h"
+// Include the appropriate motor header based on the build mode
 
 #ifndef SIMULATOR
 #include "motor.h"
@@ -15,35 +16,41 @@
 #include "simulatedmotor.h"
 #endif
 
+// Global notification and settings instances
 Notification notify;
 PersistentSettings SETTINGS;
+
+// Filigree file names and array of file names
 const char *FILIGREE_FILE_NAME = "filigree.txt";
 const char *FILIGREE_STARTUP_FILE_NAME = "startup.txt";
-
 const char *FILIGREE_FILE_1 = "fili1.txt";
 const char *FILIGREE_PLAY;
 const char *FILIGREE_FILES[3] = {"fili2.txt", "fili3.txt", "fili1.txt"};
 
+// Function to get motor type
 uint32_t motor_get_type(int motor_id) {
   return static_cast<uint32_t>(SETTINGS.motorType[motor_id]);
 }
 
+// Function to set motor type and update persistent settings
 uint32_t motor_set_type(int motor_id, int Type) {
 
-  // Update the specific motor type
   if (motor_id >= 0 && motor_id < 4) {
     SETTINGS.motorType[motor_id] = static_cast<char>(Type);
     save_persistent_settings(SETTINGS);
   }
 }
 
+// Function to set velocity and update persistent settings
 uint32_t set_velocity(uint32_t velocity) {
   SETTINGS.velocityLimit = velocity;
   save_persistent_settings(SETTINGS);
 }
 
+// Function to get velocity
 uint32_t get_velocity() { return SETTINGS.velocityLimit; }
 
+// Function to set acceleration and update persistent settings
 uint32_t set_acceleration(uint32_t acceleration) {
   SETTINGS.accelerationLimit = acceleration;
   save_persistent_settings(SETTINGS);
@@ -78,23 +85,26 @@ uint32_t motors_wait(int del) {
   delay(del);
   return 0;
 }
-///////////////////////////
-// Ethernet stuff
-// Configure with a manually assigned IP address
-/*
 
-Slave acts as a server
-Master acts as a client
-*/
+///////////////////////////
+// Ethernet configuration
+///////////////////////////
 
 byte client_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 byte server_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEE};
-// Set ClearCore's IP address | slave==server
+
+// Manually assigned IP addresses for client and server
 IPAddress client_ip = IPAddress(192, 168, 0, 100);
 IPAddress server_ip = IPAddress(192, 168, 0, 101);
+
+// Port number for the server
 const int PORT_NUM = 8888;
-EthernetServer server = EthernetServer(PORT_NUM);
+
+// Create Ethernet server and client objects
+EthernetServer server(PORT_NUM);
 EthernetClient slave;
+
+// Pin definitions based on the build mode
 #ifndef SIMULATOR
 #define start_pause_button_pin DI6
 #else
@@ -107,10 +117,14 @@ EthernetClient slave;
 #define file_selector_pin_2 A11
 
 //////////////////////////////////////////////////////////////////
+// Global variables for file handling and state management
+//////////////////////////////////////////////////////////////////
+
 File filigreeFile;
 bool isMaster = false; // SD card is not available
 bool isStartupRequired = false;
 
+// Volatile flags and variables for state management
 volatile bool isRunning = false;
 volatile bool isDoorOpened = false;
 volatile bool isIntialized = false;
@@ -125,7 +139,9 @@ volatile uint32_t lastDebounceTime_emr = 0;
 uint8_t DebounceDelay = 50;
 
 /////////////////////////////////////////////////////////////////////////
-// call back functions
+// Callback functions
+/////////////////////////////////////////////////////////////////////////
+
 void start_pause_button_callback() {
 
   uint8_t buttonState = digitalRead(start_pause_button_pin);
@@ -218,6 +234,10 @@ void file_selector_reset_callack() {
   SysMgr.ResetBoard(); // restarts board
 }
 
+/////////////////////////////////////////////////////////////////////////
+// Setup and loop functions
+/////////////////////////////////////////////////////////////////////////
+
 void setup() {
 
   notify.notification_init();
@@ -253,6 +273,7 @@ void setup() {
     delay(400);
   }
 
+  // Attach interrupts for various sensors and buttons if the device is a master
   if (isMaster) {
     attachInterrupt(digitalPinToInterrupt(start_pause_button_pin),
                     start_pause_button_callback, RISING);
@@ -268,12 +289,14 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(file_selector_pin_2),
                     file_selector_reset_callack, CHANGE);
 
+    // Ensure emergency button is not pressed before proceeding
     while (!digitalRead(emergency_button_pin)) {
       Log("emergency");
       notify.show(notify.emergency);
       isEmergencyState = true;
     }
 
+    // Wait until the start/pause button is pressed
     while (!isButton) {
       Log("inital");
       if (isEmergencyTriggered) {
@@ -298,10 +321,11 @@ void setup() {
 
     if (!isDoorOpened && isFilamentPresent && !isEmergencyState) {
       Log("playing startup...");
-      // call tower light green
       notify.show(notify.running);
       startup();
     }
+
+    // Select the appropriate filigree file based on the selector pins
     uint8_t file_bit_1 = digitalRead(file_selector_pin_1) << 1;
     uint8_t file_bit_2 = digitalRead(file_selector_pin_2);
 
@@ -354,7 +378,7 @@ void loop() {
     if (isStartupRequired) {
       isStartupRequired = false;
       startup();
-      filigreeFile.seek(0);
+      filigreeFile.seek(0); // Reset file pointer for looping
     }
 
     if (!filigreeFile.available()) // for looping to work
@@ -365,6 +389,7 @@ void loop() {
       return;
     Serial.println(createMessage(executeCommand(line), PARAM_COUNT));
   } else {
+    // Handle slave logic
     EthernetClient client = server.available();
     if (Serial.available()) {
       Serial.println(createMessage(executeCommand(Serial.readStringUntil('\n')),
@@ -394,6 +419,7 @@ int *executeCommand(const String &line) {
 
   res[PARAM_REQUEST_ID] = req[PARAM_REQUEST_ID];
 
+  // Forward command to slave if necessary
   if (req[PARAM_CONTROLLER_ID] == 1 && isMaster == true) {
     slave.println(line);
     slave.flush();
