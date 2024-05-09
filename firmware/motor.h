@@ -33,7 +33,7 @@ uint32_t motor_status(int motor_id) {
 
 void motor_setup() {
   MotorMgr.MotorInputClocking(
-      MotorManager::CLOCK_RATE_NORMAL); // input clocking rate
+      MotorManager::CLOCK_RATE_LOW); // input clocking rate
   MotorMgr.MotorModeSet(
       MotorManager::MOTOR_ALL,
       Connector::CPM_MODE_STEP_AND_DIR); // sets all motor connectors to step
@@ -65,16 +65,18 @@ uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
   while ((!motor->StepsComplete() ||
           motor->HlfbState() != MotorDriver::HLFB_ASSERTED) &&
          !motor->StatusReg().bit.AlertsPresent) {
-    MotorDriver::HlfbStates hlfbState = motor->HlfbState();
+    // MotorDriver::HlfbStates hlfbState = motor->HlfbState();
 
     // Write the HLFB state to the serial port
-    if (hlfbState == MotorDriver::HLFB_HAS_MEASUREMENT) {
-      // Writes the torque measured, as a percent of motor peak torque rating
-      if (int(round(motor->HlfbPercent())) < 0)
-        break;
-    }
+    // if (hlfbState == MotorDriver::HLFB_HAS_MEASUREMENT) {
+    //   // Writes the torque measured, as a percent of motor peak torque rating
+    //   if (int(round(motor->HlfbPercent())) < 0)
+    //     break;
+    // }
   }
-
+  if (!is_cutting) {
+    delay(10);
+  }
   Log("Move completed");
   return motor->AlertReg().reg;
 }
@@ -82,6 +84,12 @@ uint32_t motor_move(int motor_id, float angle, MotorDriver::MoveTarget mode,
 uint32_t motor_angle() {
   int angle = 0; // find the parameter where you can find angle
   return angle;
+}
+
+uint32_t motor_disable(int motor_id) {
+  MotorDriver *motor = motors[motor_id];
+  motor->EnableRequest(false);
+  return motor->AlertReg().reg;
 }
 
 uint32_t motor_reset(int motor_id) {

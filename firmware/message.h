@@ -35,7 +35,8 @@ enum class Commands {
   MotorSetAcceleration = 15,
   MotorSetCuttingAcceleration = 16,
   MotorSetResolution = 17,
-  MotorDelay = 18
+  MotorDelay = 18,
+  MotorsDisable = 19
 
 };
 
